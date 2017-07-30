@@ -66,23 +66,32 @@
   <ItemGroup>
     <ClCompile Include="FileReader.cpp" />
     <ClCompile Include="Grammar.cpp" />
+    <ClCompile Include="GrammarBuilder.cpp" />
     <ClCompile Include="GrammarException.cpp" />
+    <ClCompile Include="LRItem.cpp" />
+    <ClCompile Include="LRTable.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NonTerminal.cpp" />
     <ClCompile Include="Precedence.cpp" />
     <ClCompile Include="Production.cpp" />
+    <ClCompile Include="State.cpp" />
     <ClCompile Include="Symbol.cpp" />
     <ClCompile Include="Terminal.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FileReader.h" />
     <ClInclude Include="Grammar.h" />
+    <ClInclude Include="GrammarBuilder.h" />
     <ClInclude Include="GrammarException.h" />
+    <ClInclude Include="LRItem.h" />
+    <ClInclude Include="LRTable.h" />
     <ClInclude Include="NonTerminal.h" />
     <ClInclude Include="Precedence.h" />
     <ClInclude Include="Production.h" />
+    <ClInclude Include="State.h" />
     <ClInclude Include="Symbol.h" />
     <ClInclude Include="Terminal.h" />
+    <ClInclude Include="TrajanAlgorithm.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

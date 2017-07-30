@@ -18,11 +18,13 @@ public:
         undefined_symbol_kind = 7,
         repeated_symbol_declaration = 8,
         undefined_precedence = 9,
-        empty_production = 10,
+        incorrect_empty_production_declaration = 10,
         repeated_production_declaration = 11,
         undefined_nonterminal_start = 12,
         infinitive_production = 13,
-        incorrect_empty_production = 14
+        incorrect_empty_production = 14,
+        nonassoc_shift_reduce_conflict = 15,
+        unknown_conflict = 16
     };
     GrammarException(std::string const& message, ErrorCause value);
 private:

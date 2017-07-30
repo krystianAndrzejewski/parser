@@ -8,7 +8,11 @@ const std::map<FileReader::keyword, std::string> FileReader::keywordText = {
     { precedence_left, "%left" },
     { precedence_right, "%right" },
     { precedence_nonassoc, "%nonassoc" },
-    { precedence_definition, "%prec" }
+    { precedence_definition, "%prec" },
+    { token_definition, "%token" },
+    { nonterminal_definition, "%type" },
+    { start_definition, "%start" },
+    { empty_definition, "%empty" }
 };
 
 
@@ -47,6 +51,66 @@ void FileReader::processFile()
     }
 }
 
+void FileReader::printDebugInfo()
+{
+    std::cout << "FileReader - initial text analisys\n\n"
+        << "A path to the file: " << path << "\n\n"
+        << "Tokens:\n";
+    for (auto token : tokens)
+    {
+        std::cout << "    (Name: " << get<0>(token) << "; Pattern: " << get<1>(token);
+        if (!get<2>(token).empty())
+        {
+            std::cout << "; Type: " << get<2>(token) << ")\n";
+        }
+        else
+        {
+            std::cout << "; Type: default)\n";
+        }
+    }
+    std::cout << "Nonterminals:\n";
+    for (auto nonTerminal : nonTerminals)
+    {
+        std::cout << "    (Name: " << get<0>(nonTerminal);
+        if (!get<1>(nonTerminal).empty())
+        {
+            std::cout << "; Type: " << get<1>(nonTerminal) << ")\n";
+        }
+        else
+        {
+            std::cout << "; Type: default)\n";
+        }
+    }
+    std::cout << "\n" << "Precedences:\n";
+    for (auto precedence : precedences)
+    {
+        std::cout << "    (Name: " << get<0>(precedence) << "; Type: " << keywordText.at(static_cast<keyword>(get<1>(precedence)))
+            << "; Level: " << get<2>(precedence) << ")\n";
+    }
+    std::cout << "\n" << "Productions:\n";
+    for (auto production : productions)
+    {
+        std::cout << "    (Production: " << get<0>(production) << " :";
+        for (auto igredient : get<1>(production))
+        {
+            if (igredient.second)
+            {
+                std::cout << " " << igredient.first;
+            }
+            else
+            {
+                std::cout << " '" << igredient.first << "'";
+            }
+        }
+        if (!get<2>(production).empty())
+        {
+            std::cout << "; Precedence association: " << get<2>(production);
+        }
+        std::cout << ")\n";
+    }
+    std::cout << "\n";
+}
+
 
 bool FileReader::readFile()
 {
@@ -69,9 +133,11 @@ void FileReader::takeProductions()
         << "(" 
         << "("
         << "("
+        << "("
         << nameOrSpecialPattern << "|" << textInQuationMark
         << ")" << interspace
         << ")+"
+        << ")"  
         << "(" << "\\n" << interspace 
         << "("
         << alternativeProductionBegin 
@@ -132,28 +198,40 @@ void FileReader::processProductionIgredient(
             productions.push_back(std::tuple<std::string, std::vector<std::pair<std::string, bool>>, std::string>
                 (product, std::vector<std::pair<std::string, bool>>(), ""));
         }
-        else
+        else if (!igredientIterator->str(2).empty() && igredientIterator->str(2) == keywordText.at(empty_definition))
         {
-            if (!igredientIterator->str(2).empty() && igredientIterator->str(2) != keywordText.at(precedence_definition))
+            if (std::get<1>(productions
+                .back()).empty())
             {
                 std::get<1>(productions
                     .back())
                     .push_back(std::make_pair(igredientIterator->str(2), true));
             }
-            else if (!igredientIterator->str(3).empty() && igredientIterator->str(3) != keywordText.at(precedence_definition))
-            {
-                std::get<1>(productions
-                    .back())
-                    .push_back(std::make_pair(igredientIterator->str(3), false));
-            }
             else
             {
-                if (processPrecedenceForProduction(igredientIterator))
-                {
-                    break;
-                }
+                throw GrammarException(
+                    "A wrong defined empty production.",
+                    GrammarException::ErrorCause::production_syntax_error);
             }
-
+        }
+        else if (!igredientIterator->str(2).empty() && igredientIterator->str(2) != keywordText.at(precedence_definition))
+        {
+            std::get<1>(productions
+                .back())
+                .push_back(std::make_pair(igredientIterator->str(2), true));
+        }
+        else if (!igredientIterator->str(3).empty() && igredientIterator->str(3) != keywordText.at(precedence_definition))
+        {
+            std::get<1>(productions
+                .back())
+                .push_back(std::make_pair(igredientIterator->str(3), false));
+        }
+        else
+        {
+            if (processPrecedenceForProduction(igredientIterator))
+            {
+                break;
+            }
         }
     }
 }
@@ -264,7 +342,7 @@ void FileReader::processPrecedenceIgredient(
 void FileReader::takeTerminals()
 {
     std::stringstream stream;
-    stream << "^" << whiteSigns << "%token"
+    stream << "^" << whiteSigns << keywordText.at(token_definition)
         << "("
         << "<" << namePattern << ">"
         << ")?"
@@ -316,7 +394,7 @@ void FileReader::processTokens(
 void FileReader::takeNonTerminals()
 {
     std::stringstream stream;
-    stream << "^" << whiteSigns << "%type"
+    stream << "^" << whiteSigns << keywordText.at(nonterminal_definition)
         << "("
         << "<" << namePattern << ">"
         << ")?"
@@ -366,7 +444,6 @@ void FileReader::takeStartProduction()
 {
     std::stringstream stream;
     stream << "^" << whiteSigns << "%start" << interspace << namePattern << whiteSigns << "$";
-    //std::string startPattern = "^\\s*%start(<([0-9]+)>)?[ \\t]+([a-zA-Z_][a-zA-Z0-9_]*)\\s*?$";
     std::string startPattern = stream.str();
     std::regex startRegex(startPattern);
     std::sregex_iterator startIterator(content.begin(), content.end(), startRegex);

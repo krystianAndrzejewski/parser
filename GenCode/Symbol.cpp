@@ -6,7 +6,7 @@ Symbol::Symbol(const std::string &pName, const std::string &pType, const Precede
     precedence(pPrecedence)
 {
     name = "'" + pName + "'";
-    pattern = name;
+    pattern = pName;
 }
 
 Symbol::Symbol(const std::string &pType, const Precedence *pPrecedence)

@@ -39,6 +39,8 @@ public:
         return startProduction;
     }
 
+    void printDebugInfo();
+
 private:
     enum keyword : unsigned char
     {
@@ -48,7 +50,11 @@ private:
         precedence_definition = 
             Precedence::Association::LEFT | 
             Precedence::Association::RIGHT | 
-            Precedence::Association::NONASSOC
+            Precedence::Association::NONASSOC,
+        token_definition,
+        nonterminal_definition,
+        start_definition,
+        empty_definition
     };
 
     void processFile();

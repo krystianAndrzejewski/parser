@@ -3,9 +3,10 @@
 
 #include <stack>
 #include <set>
+#include <iostream>
 
 
-const Symbol *Grammar::getSymbol(const std::string &name)
+const Symbol *Grammar::getSymbol(const std::string &name) const
 {
     const Symbol *result = nullptr;
     auto terminalIterator = mapSymbolsString.find(name);
@@ -16,7 +17,7 @@ const Symbol *Grammar::getSymbol(const std::string &name)
     return result;
 }
 
-const Precedence *Grammar::getPrecedence(const std::string &name)
+const Precedence *Grammar::getPrecedence(const std::string &name) const
 {
     const Precedence *result = nullptr;
     auto precedenceIterator = mapPrecedencesString.find(name);
@@ -27,7 +28,7 @@ const Precedence *Grammar::getPrecedence(const std::string &name)
     return result;
 }
 
-const Production *Grammar::getProduction(const std::string &name)
+const Production *Grammar::getProduction(const std::string &name) const
 {
     const Production *result = nullptr;
     auto productionIterator = mapProductionsString.find(name);
@@ -39,7 +40,7 @@ const Production *Grammar::getProduction(const std::string &name)
 }
 
 
-const Symbol *Grammar::getSymbol(const std::size_t &number)
+const Symbol *Grammar::getSymbol(const std::size_t &number) const
 {
     if (number < symbols.size())
     {
@@ -49,7 +50,7 @@ const Symbol *Grammar::getSymbol(const std::size_t &number)
 }
 
 
-const Production *Grammar::getProduction(const std::size_t &number)
+const Production *Grammar::getProduction(const std::size_t &number) const
 {
     if (number < productions.size())
     {
@@ -59,7 +60,7 @@ const Production *Grammar::getProduction(const std::size_t &number)
 }
 
 
-const Precedence *Grammar::getPrecedence(const std::size_t &number)
+const Precedence *Grammar::getPrecedence(const std::size_t &number) const
 {
     if (number < precedences.size())
     {
@@ -69,7 +70,7 @@ const Precedence *Grammar::getPrecedence(const std::size_t &number)
 }
 
 
-bool Grammar::getSymbol(const std::string &name, std::size_t &result)
+bool Grammar::getSymbol(const std::string &name, std::size_t &result) const
 {
     auto symbolIterator = mapSymbolsString.find(name);
     if (symbolIterator != mapSymbolsString.end())
@@ -81,7 +82,7 @@ bool Grammar::getSymbol(const std::string &name, std::size_t &result)
 }
 
 
-bool Grammar::getProduction(const std::string &name, std::size_t &result)
+bool Grammar::getProduction(const std::string &name, std::size_t &result) const
 {
     auto productionIterator = mapProductionsString.find(name);
     if (productionIterator != mapProductionsString.end())
@@ -93,7 +94,7 @@ bool Grammar::getProduction(const std::string &name, std::size_t &result)
 }
 
 
-bool Grammar::getPrecedence(const std::string &name, std::size_t &result)
+bool Grammar::getPrecedence(const std::string &name, std::size_t &result) const
 {
     auto precedenceIterator = mapPrecedencesString.find(name);
     if (precedenceIterator != mapPrecedencesString.end())
@@ -104,12 +105,160 @@ bool Grammar::getPrecedence(const std::string &name, std::size_t &result)
     return false;
 }
 
+
+const vector<Production *> &Grammar::getAllProductions() const
+{ 
+    return productions; 
+}
+
+const vector<Symbol *> &Grammar::getAllSymbols() const
+{ 
+    return symbols; 
+}
+
+const vector<const Production *> *Grammar::getProductions(const Symbol* product) const
+{
+    auto definedProductions = mapProductToProductions.find(product);
+    if (definedProductions != mapProductToProductions.end())
+    {
+        return &(definedProductions->second);
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+const NonTerminal* Grammar::getStartNonTerminal() const
+{
+    return start;
+}
+
+void Grammar::printDebugInfo() const
+{
+    std::string intend = "    ";
+    std::cout << "Grammar - final input analisys\n\n"
+        << "Symbols:\n";
+    for (auto symbol : symbols)
+    {
+        if (!symbol->isNonTerminal())
+        {
+            std::cout << intend << "-------Terminal-------\n"
+                << intend << "Name: " << symbol->getName() << "\n"
+                << intend << "Pattern: " << *(symbol->getPattern()) << "\n";
+        }
+        else
+        {
+            std::cout << intend << "-------Nonterminal-------\n"
+                << intend << "Name: " << symbol->getName() << "\n";
+            auto iterator = mapProductToProductions.find(symbol);
+            if (iterator != mapProductToProductions.end())
+            {
+                std::cout << intend << "Productions:\n";
+                for (auto production : iterator->second)
+                {
+                    std::cout << intend << intend << production->getHashableName() << "\n";
+                    if (production->getPrecedence() != nullptr)
+                    {
+                        auto precedence = production->getPrecedence();
+                        std::cout << intend << intend << intend << "Precedence: (Name: " << precedence->getName() << "; Type: " << precedence->getAssociation()
+                            << "; Level: " << precedence->getPriority() << ")\n";
+                    }
+                }
+            }
+        }
+        if (symbol->getPrecedence() != nullptr)
+        {
+            auto precedence = symbol->getPrecedence();
+            std::cout << intend << "Precedence: (Name: " << precedence->getName() << "; Type: " << precedence->getAssociation()
+                << "; Level: " << precedence->getPriority() << ")\n";
+        }
+        auto firstElements = First.find(symbol);
+        if (firstElements != First.end())
+        {
+            std::cout << intend << "First: ";
+            for (auto element : firstElements->second)
+            {
+                std::cout << element->getName() << ", ";
+            }
+            std::cout << "\n";
+        }
+        auto followElements = Follow.find(symbol);
+        if (followElements != Follow.end())
+        {
+            std::cout << intend << "Follow: ";
+            for (auto element : followElements->second)
+            {
+                std::cout << element->getName() << "; ";
+            }
+            std::cout << "\n";
+        }
+        std::cout << "\n";
+    }
+    if (unusedPrecedences.size() > 0)
+    {
+        std::cout << "Unused precedences:\n" << intend;
+        for (auto precedence : precedences)
+        {
+            std::cout << precedence.second << "; ";
+        }
+        std::cout << "\n\n";
+    }
+    else
+    {
+        std::cout << "There are not any unused precedences.\n\n";
+    }
+    if (unusedSymbols.size() > 0)
+    {
+        std::cout << "Unused symbols:\n" << intend;
+        for (auto symbol : unusedSymbols)
+        {
+            std::cout << symbol->getName() << "; ";
+        }
+        std::cout << "\n\n";
+    }
+    else
+    {
+        std::cout << "There are not any unused symbols.\n\n";
+    }
+    if (unusedProductions.size() > 0)
+    {
+        std::cout << "Unreachable productions:\n";
+        for (auto production : unusedProductions)
+        {
+            std::cout << intend << production->getHashableName() << "\n";
+        }
+        std::cout << "\n";
+    }
+    else
+    {
+        std::cout << "There are not any unreachable productions.\n\n";
+    }
+    if (unusedProductions.size() > 0)
+    {
+        std::cout << "Infinitive productions:\n";
+        for (auto production : infinitivePoductions)
+        {
+            std::cout << intend << production->getHashableName() << "\n";
+        }
+        std::cout << "\n";
+    }
+    else
+    {
+        std::cout << "There are not any infinitive productions.\n\n";
+    }
+}
+
 Grammar::Grammar()
 {
     Grammar::insertTerminal(
         "$",
-        "\0",
+        "\\0",
         "end");
+    Grammar::insertTerminal(
+        "%empty",
+        "",
+        "empty");
 }
 
 
@@ -150,8 +299,8 @@ bool Grammar::insertSymbol(
         {
             newSymbol = new NonTerminal(name, type);
             symbols.push_back(newSymbol);
-            mapSymbols[*newSymbol] = symbols.size() - 1;
-            mapSymbolsString[newSymbol->getName()] = mapSymbols[*newSymbol];
+            mapSymbols[newSymbol] = symbols.size() - 1;
+            mapSymbolsString[newSymbol->getName()] = mapSymbols[newSymbol];
         }
         else
         {
@@ -163,8 +312,8 @@ bool Grammar::insertSymbol(
         {
             newSymbol = new Terminal(name, "", type);
             symbols.push_back(newSymbol);
-            mapSymbols[*newSymbol] = mapSymbols[*newSymbol];
-            mapSymbolsString[newSymbol->getName()] = mapSymbols[*newSymbol];
+            mapSymbols[newSymbol] = mapSymbols[newSymbol];
+            mapSymbolsString[newSymbol->getName()] = mapSymbols[newSymbol];
         }
         else
         {
@@ -176,8 +325,8 @@ bool Grammar::insertSymbol(
         {
             newSymbol = new Symbol(name, type);
             symbols.push_back(newSymbol);
-            mapSymbols[*newSymbol] = symbols.size() - 1;
-            mapSymbolsString[newSymbol->getName()] = mapSymbols[*newSymbol];
+            mapSymbols[newSymbol] = symbols.size() - 1;
+            mapSymbolsString[newSymbol->getName()] = mapSymbols[newSymbol];
         }
         else
         {
@@ -199,10 +348,10 @@ bool Grammar::insertTerminal(
     bool success = true;
     if (mapSymbolsString.find(name) == mapSymbolsString.end())
     {
-        Symbol *newSymbol = new Terminal(name, type);
+        Symbol *newSymbol = new Terminal(name, pattern, type);
         symbols.push_back(newSymbol);
-        mapSymbols[*newSymbol] = symbols.size() - 1;
-        mapSymbolsString[newSymbol->getName()] = mapSymbols[*newSymbol];
+        mapSymbols[newSymbol] = symbols.size() - 1;
+        mapSymbolsString[newSymbol->getName()] = mapSymbols[newSymbol];
     }
     else
     {
@@ -239,8 +388,8 @@ bool Grammar::insertPrecedence(
     {
         Precedence *newPrecedence = new Precedence(name, prority, association);
         precedences.push_back(make_pair(newPrecedence, false));
-        mapPrecedences[*newPrecedence] = precedences.size() - 1;
-        mapPrecedencesString[newPrecedence->getName()] = mapPrecedences[*newPrecedence];
+        mapPrecedences[newPrecedence] = precedences.size() - 1;
+        mapPrecedencesString[newPrecedence->getName()] = mapPrecedences[newPrecedence];
     }
     else
     {
@@ -265,6 +414,7 @@ bool Grammar::insertProduction(
         throw GrammarException("Undefined symbol.", GrammarException::ErrorCause::undefined_symbol);
     }
     vector<const Symbol *> productionIgredients;
+    bool emptyProduction = false;
     for (auto igredient : igredients)
     {
         std::string name;
@@ -278,6 +428,11 @@ bool Grammar::insertProduction(
                 insertSymbol(symbolsKind::kTerminal, name, "");
                 symbol = getSymbol(name);
             }
+            else if (symbol->getName() == "%empty")
+            {
+                symbol = nullptr;
+                emptyProduction = true;
+            }
         }
         else
         {
@@ -289,23 +444,22 @@ bool Grammar::insertProduction(
                 symbol = getSymbol(name);
             }
         }
-        productionIgredients.push_back(symbol);
+        if (symbol)
+        {
+            productionIgredients.push_back(symbol);
+        }
     }
-    if (productionIgredients.empty())
+    if ((productionIgredients.empty() && !emptyProduction) | (emptyProduction && !productionIgredients.empty()))
     {
-        throw GrammarException("Empty production.", GrammarException::ErrorCause::empty_production);
+        throw GrammarException("an incorrect empty production.", GrammarException::ErrorCause::incorrect_empty_production_declaration);
     }
     Production *production = new Production(*nonTerminal, productionIgredients, precedence);
     if (mapProductionsString.find(production->getHashableName()) == mapProductionsString.end())
     {
         productions.push_back(production);
-        mapProductions[*production] = productions.size() - 1;
-        mapProductionsString[production->getHashableName()] = mapProductions[*production];
-        if (mapProductToProductions.find(*nonTerminal) == mapProductToProductions.end())
-        {
-            mapProductToProductions[*nonTerminal] = std::vector<const Production*>();
-        }
-        mapProductToProductions[*nonTerminal].push_back(production);
+        mapProductions[production] = productions.size() - 1;
+        mapProductionsString[production->getHashableName()] = mapProductions[production];
+        mapProductToProductions[nonTerminal].push_back(production);
     }
     else
     {
@@ -345,6 +499,32 @@ const Precedence *Grammar::getUnusedPrecedence(const std::string &namePrecedence
     return precedence;
 }
 
+const std::vector<const Symbol*> *Grammar::getFirst(const Symbol *symbol) const
+{
+    auto iterator = First.find(symbol);
+    if (iterator != First.end())
+    {
+        return &(iterator->second);
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+const std::vector<const Symbol*> *Grammar::getFollow(const Symbol *symbol) const
+{
+    auto iterator = Follow.find(symbol);
+    if (iterator != Follow.end())
+    {
+        return &(iterator->second);
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 void Grammar::checkUnusedPrecedences()
 {
     for (auto precedence : precedences)
@@ -353,7 +533,7 @@ void Grammar::checkUnusedPrecedences()
         {
             std::size_t precedenceNumber;
             getPrecedence(precedence.first->getName(), precedenceNumber);
-            unusedPrecedences.insert(*precedence.first);
+            unusedPrecedences.insert(precedence.first);
         }
     }
 }
@@ -362,7 +542,7 @@ void Grammar::checkUnusedSymbolsAndProductions()
 {
     std::set<std::size_t> reachableProduction;
     std::set<std::size_t> reachableSymbols;
-    auto iterator = mapSymbols.find(*start);
+    auto iterator = mapSymbols.find(start);
     std::stack<std::size_t> symbolsStack;
     symbolsStack.push(iterator->second);
     reachableSymbols.insert(iterator->second);
@@ -373,7 +553,7 @@ void Grammar::checkUnusedSymbolsAndProductions()
         const Symbol *symbol = getSymbol(symbolNumber);
         if (symbol != nullptr)
         {
-            auto productionIterator = mapProductToProductions.find(*symbol);
+            auto productionIterator = mapProductToProductions.find(symbol);
             if (productionIterator != mapProductToProductions.end())
             {
                 for (auto production : productionIterator->second)
@@ -385,7 +565,7 @@ void Grammar::checkUnusedSymbolsAndProductions()
                     }
                     for (auto symbol : production->getIgredients())
                     {
-                        iterator = mapSymbols.find(*symbol);
+                        iterator = mapSymbols.find(symbol);
                         if (iterator != mapSymbols.end() && reachableSymbols.find(iterator->second) == reachableSymbols.end())
                         {
                             reachableSymbols.insert(iterator->second);
@@ -402,7 +582,7 @@ void Grammar::checkUnusedSymbolsAndProductions()
         getSymbol(symbol->getName(), symbolNumber);
         if (reachableSymbols.find(symbolNumber) == reachableSymbols.end())
         {
-            unusedSymbols.insert(*symbol);
+            unusedSymbols.insert(symbol);
         }
     }
     for (auto production : productions)
@@ -411,7 +591,7 @@ void Grammar::checkUnusedSymbolsAndProductions()
         getProduction(production->getHashableName(), productionNumber);
         if (reachableProduction.find(productionNumber) == reachableProduction.end())
         {
-            unusedProductions.insert(*production);
+            unusedProductions.insert(production);
         }
     }
 }
@@ -419,13 +599,13 @@ void Grammar::checkUnusedSymbolsAndProductions()
 void Grammar::checkInfinitiveProductions()
 {
     bool changed;
-    std::unordered_set<Production> terminatesProductions;
-    std::unordered_set<Symbol> terminatesSymbols;
+    std::unordered_set<const Production *> terminatesProductions;
+    std::unordered_set<const Symbol *> terminatesSymbols;
     for (auto symbol : symbols)
     {
         if (symbol->isNonTerminal() == false)
         {
-            terminatesSymbols.insert(*symbol);
+            terminatesSymbols.insert(symbol);
         }
     }
     do
@@ -434,35 +614,35 @@ void Grammar::checkInfinitiveProductions()
         for (auto production : productions)
         {
             bool terminate = true;
-            if (terminatesProductions.find(*production) == terminatesProductions.end()
-                && unusedProductions.find(*production) == unusedProductions.end())
+            if (terminatesProductions.find(production) == terminatesProductions.end()
+                && unusedProductions.find(production) == unusedProductions.end())
             {
                 for (auto symbol : production->getIgredients())
                 {
-                    if (symbol->isNonTerminal() && terminatesSymbols.find(*symbol) == terminatesSymbols.end())
+                    if (symbol->isNonTerminal() && terminatesSymbols.find(symbol) == terminatesSymbols.end())
                     {
                         terminate = false;
                         break;
                     }
                 }
-                if (terminate && terminatesSymbols.find(production->getProduct()) == terminatesSymbols.end())
+                if (terminate && terminatesSymbols.find(&(production->getProduct())) == terminatesSymbols.end())
                 {
                     changed = true;
-                    terminatesSymbols.insert(production->getProduct());
+                    terminatesSymbols.insert(&(production->getProduct()));
                 }
-                if (terminate && terminatesProductions.find(*production) == terminatesProductions.end())
+                if (terminate && terminatesProductions.find(production) == terminatesProductions.end())
                 {
                     changed = true;
-                    terminatesProductions.insert(*production);
+                    terminatesProductions.insert(production);
                 }
             }
         }
     } while (changed);
     for (auto production : productions)
     {
-        if (unusedProductions.find(*production) == unusedProductions.end() && terminatesProductions.find(*production) == terminatesProductions.end())
+        if (unusedProductions.find(production) == unusedProductions.end() && terminatesProductions.find(production) == terminatesProductions.end())
         {
-            infinitivePoductions.insert(*production);
+            infinitivePoductions.insert(production);
         }
     }
     if (infinitivePoductions.size() > 0)
@@ -476,17 +656,17 @@ void Grammar::createFirstTable()
 {
     for (auto symbol : symbols)
     {
-        First[*symbol] = std::vector<const Symbol*>();
+        First[symbol] = std::vector<const Symbol*>();
         if (symbol->isNonTerminal() == false)
         {
-            First[*symbol].push_back(symbol);
+            First[symbol].push_back(symbol);
         }
     }
 
-    std::unordered_map<Symbol, unordered_set<const Symbol*>> prototypedFirst;
+    std::unordered_map<const Symbol*, std::unordered_set<const Symbol*>> prototypedFirst;
     bool changed;
     bool wasEmptyIgredients;
-    const Symbol *emptySymbol = getSymbol("$");
+    const Symbol *emptySymbol = getSymbol("%empty");
 
     do
     {
@@ -499,19 +679,19 @@ void Grammar::createFirstTable()
                 if (igredient->isNonTerminal())
                 {
                     bool isEmptySign = false;
-                    for (auto firstElement : First[*igredient])
+                    for (auto firstElement : First[igredient])
                     {
-                        if (*firstElement == *emptySymbol)
+                        if (firstElement == emptySymbol)
                         {
                             isEmptySign = true;
                         }
                         else
                         {
-                            if (prototypedFirst[production->getProduct()].find(firstElement) == 
-                                prototypedFirst[production->getProduct()].end())
+                            if (prototypedFirst[&(production->getProduct())].find(firstElement) ==
+                                prototypedFirst[&(production->getProduct())].end())
                             {
-                                prototypedFirst[production->getProduct()].insert(firstElement);
-                                First[production->getProduct()].push_back(firstElement);
+                                prototypedFirst[&(production->getProduct())].insert(firstElement);
+                                First[&(production->getProduct())].push_back(firstElement);
                                 changed = true;
                             }
                         }
@@ -525,33 +705,24 @@ void Grammar::createFirstTable()
                 }
                 else
                 {
-                    if (igredient == emptySymbol)
+                    if (prototypedFirst[&(production->getProduct())].find(igredient) ==
+                        prototypedFirst[&(production->getProduct())].end())
                     {
-                        if (production->getIgredients().size() > 1)
-                        {
-                            throw GrammarException("Empty production has more than one igredient", 
-                                GrammarException::ErrorCause::incorrect_empty_production);
-                        }
-                        break;
-                    }
-                    if (prototypedFirst[production->getProduct()].find(igredient) == 
-                        prototypedFirst[production->getProduct()].end())
-                    {
-                        prototypedFirst[production->getProduct()].insert(igredient);
-                        First[production->getProduct()].push_back(igredient);
-                        wasEmptyIgredients = false;
+                        prototypedFirst[&(production->getProduct())].insert(igredient);
+                        First[&(production->getProduct())].push_back(igredient);
                         changed = true;
                     }
+                    wasEmptyIgredients = false;
                     break;
                 }
             }
             if (wasEmptyIgredients)
             {
-                if (prototypedFirst[production->getProduct()].find(emptySymbol) ==
-                    prototypedFirst[production->getProduct()].end())
+                if (prototypedFirst[&(production->getProduct())].find(emptySymbol) ==
+                    prototypedFirst[&(production->getProduct())].end())
                 {
-                    prototypedFirst[production->getProduct()].insert(emptySymbol);
-                    First[production->getProduct()].push_back(emptySymbol);
+                    prototypedFirst[&(production->getProduct())].insert(emptySymbol);
+                    First[&(production->getProduct())].push_back(emptySymbol);
                     changed = true;
                 }
             }
@@ -567,10 +738,10 @@ void Grammar::createFollowTable()
         createFirstTable();
     }
 
-    std::unordered_map<Symbol, unordered_set<const Symbol*>> prototypedFollow;
-    bool changed;
-    bool wasEmptyFirst;
-    const Symbol *emptySymbol = getSymbol("$");
+    std::unordered_map<const Symbol *, unordered_set<const Symbol*>> prototypedFollow;
+    bool changed = false;
+    bool wasEmptyFirst = false;
+    const Symbol *emptySymbol = getSymbol("%empty");
 
     do
     {
@@ -578,141 +749,63 @@ void Grammar::createFollowTable()
         for (auto production : productions)
         {
             auto igredients = production->getIgredients();
-            for (int i = 0; i < production->getIgredients().size(); i++)
+            for (std::size_t i = 0; i < production->getIgredients().size(); i++)
             {
                 wasEmptyFirst = true;
-                for (int j = i + 1; j < production->getIgredients().size(); j++)
+                for (std::size_t j = i + 1; j < production->getIgredients().size(); j++)
                 {
                     if (igredients[j]->isNonTerminal())
                     {
-                        for (auto firstElement : First[*(igredients[j])])
+                        wasEmptyFirst = false;
+                        for (auto firstElement : First[igredients[j]])
                         {
-                            if (*firstElement == *emptySymbol)
+                            if (firstElement == emptySymbol)
                             {
                                 wasEmptyFirst = true;
                             }
                             else
                             {
-                                if (prototypedFollow[*(igredients[i])].find(firstElement) ==
-                                    prototypedFollow[*(igredients[i])].end())
+                                if (prototypedFollow[igredients[i]].find(firstElement) ==
+                                    prototypedFollow[igredients[i]].end())
                                 {
-                                    prototypedFollow[production->getProduct()].insert(firstElement);
-                                    Follow[production->getProduct()].push_back(firstElement);
+                                    prototypedFollow[igredients[i]].insert(firstElement);
+                                    Follow[igredients[i]].push_back(firstElement);
                                     changed = true;
                                 }
                             }
                         }
+                        if (wasEmptyFirst == false)
+                        {
+                            break;
+                        }
                     }
                     else
                     {
-
+                        if (prototypedFollow[igredients[i]].find(igredients[j]) ==
+                            prototypedFollow[igredients[i]].end())
+                        {
+                            prototypedFollow[igredients[i]].insert(igredients[j]);
+                            Follow[igredients[i]].push_back(igredients[j]);
+                            changed = true;
+                        }
+                        wasEmptyFirst = false;
+                        break;
                     }
                 }
                 if (wasEmptyFirst)
                 {
-                    if (prototypedFollow[production->getProduct()].find(emptySymbol) ==
-                        prototypedFollow[production->getProduct()].end())
+                    for (auto followElement : Follow[&(production->getProduct())])
                     {
-                        prototypedFollow[production->getProduct()].insert(emptySymbol);
-                        Follow[production->getProduct()].push_back(emptySymbol);
-                        changed = true;
+                        if (prototypedFollow[igredients[i]].find(followElement) ==
+                            prototypedFollow[igredients[i]].end())
+                        {
+                            prototypedFollow[igredients[i]].insert(followElement);
+                            Follow[igredients[i]].push_back(followElement);
+                            changed = true;
+                        }
                     }
                 }
             }
         }
     } while (changed == true);
-}
-
-
-Grammar *GrammarBuilder::createGrammar(const FileReader &reader)
-{
-    auto tokens = reader.getTokens();
-    auto precedences = reader.getPrecedences();
-    auto nonTerminals = reader.getNonTerminals();
-    auto productions = reader.getProductions();
-    Grammar *grammar = new Grammar();
-
-    createNonterminals(grammar, productions, nonTerminals);
-    createPrecedences(grammar, precedences);
-    createTerminals(grammar, tokens);
-    createProductions(grammar, productions);
-    grammar->setTerminalsPrecedence();
-    grammar->setStart(reader.getStart());
-    grammar->checkUnusedSymbolsAndProductions();
-    grammar->checkInfinitiveProductions();
-
-    delete grammar;
-    return nullptr;
-}
-
-void GrammarBuilder::deleteGrammar(const Grammar *grammar)
-{
-    delete grammar;
-}
-
-void GrammarBuilder::createNonterminals(
-    Grammar *grammar,
-    const std::vector<std::tuple<std::string, std::vector<std::pair<std::string, bool>>, std::string>> &productions,
-    const std::vector<std::tuple<std::string, std::string>> &nonTerminals)
-{
-    for (auto nonTerminal : nonTerminals)
-    {
-        if (grammar->insertSymbol(
-            Grammar::symbolsKind::kNonTerminal,
-            std::get<0>(nonTerminal),
-            std::get<1>(nonTerminal)) == false)
-        {
-            throw GrammarException("Repeated nonTerminal declaration.", GrammarException::ErrorCause::repeated_symbol_declaration);
-        }
-    }
-
-    for (auto production : productions)
-    {
-        grammar->insertSymbol(Grammar::symbolsKind::kNonTerminal, std::get<0>(production), "");
-    }
-}
-
-
-void GrammarBuilder::createPrecedences(
-    Grammar *grammar,
-    const std::vector<std::tuple<std::string, unsigned char, unsigned int>> &precedences)
-{
-    for (auto precedence : precedences)
-    {
-        if (grammar->insertPrecedence(
-            std::get<0>(precedence),
-            std::get<2>(precedence),
-            static_cast<Precedence::Association>(std::get<1>(precedence))) == false)
-        {
-            throw GrammarException("Repeated nonTerminal declaration.", GrammarException::ErrorCause::repeated_symbol_declaration);
-        }
-    }
-}
-
-
-void GrammarBuilder::createTerminals(
-    Grammar *grammar,
-    const std::vector<std::tuple<std::string, std::string, std::string>> &terminals)
-{
-    for (auto token : terminals)
-    {
-        if (grammar->insertTerminal(std::get<0>(token), std::get<1>(token), std::get<2>(token)) == false)
-        {
-            throw GrammarException("Repeated terminal declaration.", GrammarException::ErrorCause::repeated_symbol_declaration);
-        }
-    }
-}
-
-
-void GrammarBuilder::createProductions(
-    Grammar *grammar,
-    const std::vector<std::tuple<std::string, std::vector<std::pair<std::string, bool>>, std::string>> &productions)
-{
-    for (auto production : productions)
-    {
-        if (grammar->insertProduction(std::get<0>(production), std::get<1>(production), std::get<2>(production)) == false)
-        {
-            throw GrammarException("Repeated production declaration.", GrammarException::ErrorCause::repeated_production_declaration);
-        }
-    }
 }

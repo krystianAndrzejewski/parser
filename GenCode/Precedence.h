@@ -44,3 +44,20 @@ struct std::equal_to<Precedence>
     }
 };
 
+template <>
+struct std::hash<const Precedence *>
+{
+    std::size_t operator()(const Precedence * const k) const
+    {
+        return std::hash<std::string>()(k->getName());
+    }
+};
+
+template <>
+struct std::equal_to<const Precedence * >
+{
+    bool operator()(const Precedence * const lhs, const Precedence * const rhs) const
+    {
+        return lhs->getName().compare(rhs->getName()) == 0;
+    }
+};
