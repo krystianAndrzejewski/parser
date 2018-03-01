@@ -7,7 +7,7 @@
 template<typename T>
 struct std::less<T*>
 {
-    bool operator()(const T *lhs, const T *rhs)
+    bool operator()(const T * const lhs, const T * const rhs) const
     {
         return *lhs < *rhs;
     }
@@ -16,7 +16,7 @@ struct std::less<T*>
 template<typename T>
 struct std::equal_to<const T*>
 {
-    bool operator()(const T* lhs, const T* rhs) const
+    bool operator()(const T* const lhs, const T* const rhs) const
     {
         return *lhs == *rhs;
     }

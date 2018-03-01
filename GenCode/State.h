@@ -65,7 +65,7 @@ private:
 template<>
 struct std::less<std::pair<const Symbol*, const State*>>
 {
-    bool operator()(const std::pair<const Symbol*, const State*> &lhs, const std::pair<const Symbol*, const State*> &rhs)
+    bool operator()(const std::pair<const Symbol*, const State*> &lhs, const std::pair<const Symbol*, const State*> &rhs) const
     {
         int compareValue = lhs.first->getName().compare(rhs.first->getName());
         if (compareValue == -1)
@@ -87,7 +87,7 @@ struct std::less<std::pair<const Symbol*, const State*>>
 template<>
 struct std::less<const std::pair<const Symbol*, const State*> *>
 {
-    bool operator()(const std::pair<const Symbol*, const State*>  * const lhs, const std::pair<const Symbol*, const State*>  * const rhs)
+    bool operator()(const std::pair<const Symbol*, const State*>  * const lhs, const std::pair<const Symbol*, const State*>  * const rhs) const
     {
         int compareValue = lhs->first->getName().compare(rhs->first->getName());
         if (compareValue == -1)

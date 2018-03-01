@@ -7,6 +7,7 @@ State::State(const std::vector<const LRItem*> &pCore)
 {
     core.reserve(pCore.size());
     std::copy(pCore.begin(), pCore.end(), std::back_inserter(core));
+	std::sort(core.begin(), core.end());
     generateExtension();
 }
 
@@ -28,7 +29,7 @@ void State::generateExtension()
             nextStates[symbol] = std::vector<const LRItem*>();
             ateSymbols.push_back(symbol);
         }
-        else
+        else if (symbol == nullptr)
         {
             reducedItems.push_back(coreElement);
         }
@@ -55,7 +56,7 @@ void State::generateExtension()
                     nextStates[symbol] = std::vector<const LRItem*>();
                     ateSymbols.push_back(symbol);
                 }
-                else
+                else if(symbol == nullptr)
                 {
                     reducedItems.push_back(child);
                 }
@@ -66,6 +67,11 @@ void State::generateExtension()
             }
         }
     } while (!elements.empty());
+
+	for (auto &nextState : nextStates)
+	{
+		std::sort(nextState.second.begin(), nextState.second.end());
+	}
 }
 
 void State::setPrevious(const State *pPrevious)

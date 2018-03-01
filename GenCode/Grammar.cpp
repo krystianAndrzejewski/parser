@@ -234,7 +234,7 @@ void Grammar::printDebugInfo() const
     {
         std::cout << "There are not any unreachable productions.\n\n";
     }
-    if (unusedProductions.size() > 0)
+    if (infinitivePoductions.size() > 0)
     {
         std::cout << "Infinitive productions:\n";
         for (auto production : infinitivePoductions)
@@ -742,6 +742,7 @@ void Grammar::createFollowTable()
     bool changed = false;
     bool wasEmptyFirst = false;
     const Symbol *emptySymbol = getSymbol("%empty");
+	Follow[&(productions[0]->getProduct())].push_back(getSymbol("$"));
 
     do
     {
@@ -751,60 +752,63 @@ void Grammar::createFollowTable()
             auto igredients = production->getIgredients();
             for (std::size_t i = 0; i < production->getIgredients().size(); i++)
             {
-                wasEmptyFirst = true;
-                for (std::size_t j = i + 1; j < production->getIgredients().size(); j++)
-                {
-                    if (igredients[j]->isNonTerminal())
-                    {
-                        wasEmptyFirst = false;
-                        for (auto firstElement : First[igredients[j]])
-                        {
-                            if (firstElement == emptySymbol)
-                            {
-                                wasEmptyFirst = true;
-                            }
-                            else
-                            {
-                                if (prototypedFollow[igredients[i]].find(firstElement) ==
-                                    prototypedFollow[igredients[i]].end())
-                                {
-                                    prototypedFollow[igredients[i]].insert(firstElement);
-                                    Follow[igredients[i]].push_back(firstElement);
-                                    changed = true;
-                                }
-                            }
-                        }
-                        if (wasEmptyFirst == false)
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        if (prototypedFollow[igredients[i]].find(igredients[j]) ==
-                            prototypedFollow[igredients[i]].end())
-                        {
-                            prototypedFollow[igredients[i]].insert(igredients[j]);
-                            Follow[igredients[i]].push_back(igredients[j]);
-                            changed = true;
-                        }
-                        wasEmptyFirst = false;
-                        break;
-                    }
-                }
-                if (wasEmptyFirst)
-                {
-                    for (auto followElement : Follow[&(production->getProduct())])
-                    {
-                        if (prototypedFollow[igredients[i]].find(followElement) ==
-                            prototypedFollow[igredients[i]].end())
-                        {
-                            prototypedFollow[igredients[i]].insert(followElement);
-                            Follow[igredients[i]].push_back(followElement);
-                            changed = true;
-                        }
-                    }
-                }
+				if (igredients[i]->isNonTerminal())
+				{
+					wasEmptyFirst = true;
+					for (std::size_t j = i + 1; j < production->getIgredients().size(); j++)
+					{
+						if (igredients[j]->isNonTerminal())
+						{
+							wasEmptyFirst = false;
+							for (auto firstElement : First[igredients[j]])
+							{
+								if (firstElement == emptySymbol)
+								{
+									wasEmptyFirst = true;
+								}
+								else
+								{
+									if (prototypedFollow[igredients[i]].find(firstElement) ==
+										prototypedFollow[igredients[i]].end())
+									{
+										prototypedFollow[igredients[i]].insert(firstElement);
+										Follow[igredients[i]].push_back(firstElement);
+										changed = true;
+									}
+								}
+							}
+							if (wasEmptyFirst == false)
+							{
+								break;
+							}
+						}
+						else
+						{
+							if (prototypedFollow[igredients[i]].find(igredients[j]) ==
+								prototypedFollow[igredients[i]].end())
+							{
+								prototypedFollow[igredients[i]].insert(igredients[j]);
+								Follow[igredients[i]].push_back(igredients[j]);
+								changed = true;
+							}
+							wasEmptyFirst = false;
+							break;
+						}
+					}
+					if (wasEmptyFirst)
+					{
+						for (auto followElement : Follow[&(production->getProduct())])
+						{
+							if (prototypedFollow[igredients[i]].find(followElement) ==
+								prototypedFollow[igredients[i]].end())
+							{
+								prototypedFollow[igredients[i]].insert(followElement);
+								Follow[igredients[i]].push_back(followElement);
+								changed = true;
+							}
+						}
+					}
+				}
             }
         }
     } while (changed == true);

@@ -65,6 +65,15 @@ struct std::equal_to<LRItem>
 };
 
 template <>
+struct std::less<LRItem>
+{
+	bool operator()(const LRItem &lhs, const LRItem &rhs) const
+	{
+		return lhs.getNumber() < rhs.getNumber();
+	}
+};
+
+template <>
 struct std::hash<LRItem *>
 {
     std::size_t operator()(const LRItem * const k) const
@@ -80,6 +89,16 @@ struct std::equal_to<LRItem *>
     {
         return lhs->getHashableName().compare(rhs->getHashableName()) == 0;
     }
+};
+
+
+template<>
+struct std::less<LRItem*>
+{
+	bool operator() (const LRItem * const lhs, const LRItem * const rhs) const
+	{
+		return lhs->getNumber() < rhs->getNumber();
+	}
 };
 
 template<> 
