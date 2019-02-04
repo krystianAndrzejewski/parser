@@ -1,4 +1,5 @@
 #include "Production.h"
+#include <iterator>
 
 
 Production::Production(const NonTerminal &pProduct, const std::vector<const Symbol*> &pIgridients, const Precedence *pPrecedence) :

@@ -1,5 +1,6 @@
 #include "LRItem.h"
 #include "State.h"
+#include <iterator>
 
 std::size_t LRItem::amoutOfLRItems = 0;
 

@@ -1,6 +1,7 @@
 #include "State.h"
 #include <queue>
 #include <unordered_set>
+#include <iterator>
 
 
 State::State(const std::vector<const LRItem*> &pCore)

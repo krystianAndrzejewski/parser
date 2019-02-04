@@ -19,7 +19,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -65,6 +65,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ElementTree.cpp" />
     <ClCompile Include="FileReader.cpp" />
     <ClCompile Include="Grammar.cpp" />
     <ClCompile Include="GrammarBuilder.cpp" />
@@ -80,6 +81,7 @@
     <ClCompile Include="Terminal.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ElementTree.h" />
     <ClInclude Include="FileReader.h" />
     <ClInclude Include="Grammar.h" />
     <ClInclude Include="GrammarBuilder.h" />

@@ -101,34 +101,6 @@ struct std::less<LRItem*>
 	}
 };
 
-template<> 
-struct std::less<std::vector<const LRItem*>>
-{
-    bool operator() (const std::vector<const LRItem*>& lhs, const std::vector<const LRItem*>& rhs) const
-    {
-        if (lhs.size() < rhs.size())
-        {
-            return true;
-        }
-        else if (lhs.size() == rhs.size())
-        {
-            for (std::size_t i = 0; i < lhs.size(); i++)
-            {
-                if (lhs[i]->getNumber() < rhs[i]->getNumber())
-                {
-                    return true;
-
-                }
-            }
-            return false;
-        }
-        else
-        {
-            return false;
-        }
-    }
-};
-
 template<>
 struct std::less<const std::vector<const LRItem*> *>
 {
@@ -145,8 +117,12 @@ struct std::less<const std::vector<const LRItem*> *>
                 if ((*lhs)[i]->getNumber() < (*rhs)[i]->getNumber())
                 {
                     return true;
-
                 }
+
+				if ((*lhs)[i]->getNumber() > (*rhs)[i]->getNumber())
+				{
+					return false;
+				}
             }
             return false;
         }

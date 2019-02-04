@@ -1,6 +1,9 @@
+
+#pragma warning(disable : 4503)
 #include "LRTable.h"
 #include "TrajanAlgorithm.h"
 #include "GrammarException.h"
+#include "GrammarBuilder.h"
 
 #include <iostream>
 
@@ -39,6 +42,7 @@ LRTable::~LRTable()
     {
         delete item;
     }
+	GrammarBuilder::deleteGrammar(grammar);
 }
 
 void LRTable::printDebugInfo()
@@ -82,6 +86,78 @@ void LRTable::printDebugInfo()
         }
         std::cout << "\n";
     }
+}
+
+bool LRTable::parse(std::vector<std::string> &tokens, ElementTree *&result)
+{
+	result = nullptr;
+	std::vector<unsigned int> stateStack;
+	std::vector<std::unique_ptr<ElementTree>> elementTreeStack;
+	stateStack.push_back(0);
+	bool isEnd = false;
+	unsigned int i = 0;
+	while (isEnd == false)
+	{
+		std::string token = "$";
+		if (i < tokens.size())
+		{
+			token = tokens[i];
+		}
+		unsigned int actualState = stateStack.back();
+		unsigned int symbolId = 0;
+		bool isValidToken = grammar->getSymbol(token, symbolId);
+		if (isValidToken == false)
+		{
+			throw std::runtime_error("Provided token is not valid");
+		}
+		std::pair<const Symbol *, const State *> actionDef = std::make_pair(grammar->getSymbol(symbolId), states[actualState]);
+		auto it = actionTable.find(actionDef);
+		if (it != actionTable.end())
+		{
+			auto moveProps = it->second;
+			if (moveProps.first == Action::reduce)
+			{
+				std::vector<std::unique_ptr<ElementTree>> childreen;
+				unsigned int reducedProductionIndex = it->second.second;
+				auto production = grammar->getProduction(reducedProductionIndex);
+				unsigned int productionIngredientsSize = production->getIgredients().size();
+				for (unsigned int j = 0; j < productionIngredientsSize; j++)
+				{
+					stateStack.pop_back();
+					childreen.emplace_back(elementTreeStack.back().release());
+					elementTreeStack.pop_back();
+				}
+				elementTreeStack.emplace_back(new ElementTree(grammar->getProduction(it->second.second)->getProduct(), std::move(childreen)));
+				std::pair<const Symbol *, const State *> gotoActionDef = std::make_pair(&((const Symbol&)grammar->getProduction(it->second.second)->getProduct()), states[stateStack.back()]);
+				auto gotoIt = gotoTable.find(gotoActionDef);
+				if (gotoIt != gotoTable.end())
+				{
+					stateStack.push_back(gotoIt->second);
+				}
+				else
+				{
+					throw std::runtime_error("Provided nonterminal is not consistent with the grammar rules.");
+				}
+			}
+			else if (moveProps.first == Action::shift)
+			{
+				std::vector<std::unique_ptr<ElementTree>> childreen;
+				stateStack.push_back(it->second.second);
+				elementTreeStack.emplace_back(new ElementTree(*actionDef.first, std::move(childreen)));
+				i++;
+			}
+			else
+			{
+				isEnd = true;
+			}
+		}
+		else
+		{
+			throw std::runtime_error("Provided tokens are not consistent with the grammar rules.");
+		}
+	}
+	result = elementTreeStack.back().release();
+	return true;
 }
 
 void LRTable::generateItems()
@@ -177,7 +253,7 @@ void LRTable::generateStatesLRO()
                 statesNumberMap[statesQueue.back()] = states.size();
                 statesQueue.back()->setPrevious(argument);
                 states.push_back(statesQueue.back());
-                statesMap[&(states.back()->getCore())] = statesQueue.back();
+                statesMap[core] = statesQueue.back();
             }
         }
     } while (!statesQueue.empty());
@@ -352,12 +428,14 @@ void LRTable::generateTable()
         {
             std::size_t productionNumber;
             grammar->getProduction(reducedItem->getProduction()->getHashableName(), productionNumber);
+			// the loop is repeated for LALR - lookaheads, SLR - follows, LR(0) - all terminals
             for (auto lookahead : reducedItem->getLookaheads())
             {
                 auto iterator = actionTable.find(std::make_pair(lookahead, state));
                 if (iterator == actionTable.end())
                 {
                     productionReduceNumber[reducedItem->getProduction()] += 1;
+					actionTable[std::make_pair(lookahead, state)] = std::make_pair(Action::reduce, productionNumber);
                 }
                 else if (iterator->second.first == Action::shift)
                 {
