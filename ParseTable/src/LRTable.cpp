@@ -88,86 +88,87 @@ void LRTable::printDebugInfo()
     }
 }
 
-bool LRTable::parse(std::vector<std::string> &tokens, ElementTree *&result)
-{
-	result = nullptr;
-	std::vector<unsigned int> stateStack;
-	std::vector<std::unique_ptr<ElementTree>> elementTreeStack;
-	stateStack.push_back(0);
-	bool isEnd = false;
-	unsigned int i = 0;
-	while (isEnd == false)
-	{
-		std::string token = "$";
-		if (i < tokens.size())
-		{
-			token = tokens[i];
-		}
-		unsigned int actualState = stateStack.back();
-		unsigned int symbolId = 0;
-		bool isValidToken = grammar->getSymbol(token, symbolId);
-		if (isValidToken == false)
-		{
-			throw std::runtime_error("Provided token is not valid");
-		}
-		std::pair<const Symbol *, const State *> actionDef = std::make_pair(grammar->getSymbol(symbolId), states[actualState]);
-		auto it = actionTable.find(actionDef);
-		if (it != actionTable.end())
-		{
-			auto moveProps = it->second;
-			if (moveProps.first == Action::reduce)
-			{
-				std::vector<std::unique_ptr<ElementTree>> childreen;
-				unsigned int reducedProductionIndex = it->second.second;
-				auto production = grammar->getProduction(reducedProductionIndex);
-				unsigned int productionIngredientsSize = production->getIgredients().size();
-				for (unsigned int j = 0; j < productionIngredientsSize; j++)
-				{
-					stateStack.pop_back();
-					childreen.emplace_back(elementTreeStack.back().release());
-					elementTreeStack.pop_back();
-				}
-				elementTreeStack.emplace_back(new ElementTree(grammar->getProduction(it->second.second)->getProduct(), std::move(childreen)));
-				std::pair<const Symbol *, const State *> gotoActionDef = std::make_pair(&((const Symbol&)grammar->getProduction(it->second.second)->getProduct()), states[stateStack.back()]);
-				auto gotoIt = gotoTable.find(gotoActionDef);
-				if (gotoIt != gotoTable.end())
-				{
-					stateStack.push_back(gotoIt->second);
-				}
-				else
-				{
-					throw std::runtime_error("Provided nonterminal is not consistent with the grammar rules.");
-				}
-			}
-			else if (moveProps.first == Action::shift)
-			{
-				std::vector<std::unique_ptr<ElementTree>> childreen;
-				stateStack.push_back(it->second.second);
-				elementTreeStack.emplace_back(new ElementTree(*actionDef.first, std::move(childreen)));
-				i++;
-			}
-			else
-			{
-				isEnd = true;
-			}
-		}
-		else
-		{
-			throw std::runtime_error("Provided tokens are not consistent with the grammar rules.");
-		}
-	}
-	result = elementTreeStack.back().release();
-	return true;
-}
+//bool LRTable::parse(std::vector<std::string> &tokens, ElementTree *&result)
+//{
+//	result = nullptr;
+//	std::vector<unsigned int> stateStack;
+//	std::vector<std::unique_ptr<ElementTree>> elementTreeStack;
+//	stateStack.push_back(0);
+//	bool isEnd = false;
+//	unsigned int i = 0;
+//	while (isEnd == false)
+//	{
+//		std::string token = "$";
+//		if (i < tokens.size())
+//		{
+//			token = tokens[i];
+//		}
+//		unsigned int actualState = stateStack.back();
+//		unsigned int symbolId = 0;
+//		bool isValidToken = grammar->getSymbol(token, symbolId);
+//		if (isValidToken == false)
+//		{
+//			throw std::runtime_error("Provided token is not valid");
+//		}
+//		std::pair<const Symbol *, const State *> actionDef = std::make_pair(grammar->getSymbol(symbolId), states[actualState]);
+//		auto it = actionTable.find(actionDef);
+//		if (it != actionTable.end())
+//		{
+//			auto moveProps = it->second;
+//			if (moveProps.first == Action::reduce)
+//			{
+//				std::vector<std::unique_ptr<ElementTree>> childreen;
+//				unsigned int reducedProductionIndex = it->second.second;
+//				auto production = grammar->getProduction(reducedProductionIndex);
+//				unsigned int productionIngredientsSize = production->getIgredients().size();
+//				for (unsigned int j = 0; j < productionIngredientsSize; j++)
+//				{
+//					stateStack.pop_back();
+//					childreen.emplace_back(elementTreeStack.back().release());
+//					elementTreeStack.pop_back();
+//				}
+//				elementTreeStack.emplace_back(new ElementTree(grammar->getProduction(it->second.second)->getProduct(), std::move(childreen)));
+//				std::pair<const Symbol *, const State *> gotoActionDef = std::make_pair(&((const Symbol&)grammar->getProduction(it->second.second)->getProduct()), states[stateStack.back()]);
+//				auto gotoIt = gotoTable.find(gotoActionDef);
+//				if (gotoIt != gotoTable.end())
+//				{
+//					stateStack.push_back(gotoIt->second);
+//				}
+//				else
+//				{
+//					throw std::runtime_error("Provided nonterminal is not consistent with the grammar rules.");
+//				}
+//			}
+//			else if (moveProps.first == Action::shift)
+//			{
+//				std::vector<std::unique_ptr<ElementTree>> childreen;
+//				stateStack.push_back(it->second.second);
+//				elementTreeStack.emplace_back(new ElementTree(*actionDef.first, std::move(childreen)));
+//				i++;
+//			}
+//			else
+//			{
+//				isEnd = true;
+//			}
+//		}
+//		else
+//		{
+//			throw std::runtime_error("Provided tokens are not consistent with the grammar rules.");
+//		}
+//	}
+//	result = elementTreeStack.back().release();
+//	return true;
+//}
 
 void LRTable::generateItems()
 {
     const Symbol *start = grammar->getStartNonTerminal();
     const std::vector<const Production *> *productions = grammar->getProductions(start);
     std::stack<LRItem *> inputStack;
+	std::size_t numLrItems = 0;
     for (auto production : *productions)
     {
-        items.push_back(new LRItem(production, 0));
+        items.push_back(new LRItem(production, 0, numLrItems++));
         inputStack.push(items.back());
         if (itemsMap.find(items.back()->getProduction()) == itemsMap.end())
         {
@@ -183,7 +184,7 @@ void LRTable::generateItems()
         auto igredients = production->getIgredients();
         if (input->getPosition() < igredients.size())
         {
-            items.push_back(new LRItem(input->getProduction(), input->getPosition() + 1));
+            items.push_back(new LRItem(input->getProduction(), input->getPosition() + 1, numLrItems++));
             inputStack.push(items.back());
             if (itemsMap.find(items.back()->getProduction()) == itemsMap.end())
             {
@@ -200,7 +201,7 @@ void LRTable::generateItems()
                     auto iterator = itemsMap.find(child);
                     if (iterator == itemsMap.end())
                     {
-                        items.push_back(new LRItem(child, 0));
+                        items.push_back(new LRItem(child, 0, numLrItems++));
                         inputStack.push(items.back());
                         if (itemsMap.find(items.back()->getProduction()) == itemsMap.end())
                         {

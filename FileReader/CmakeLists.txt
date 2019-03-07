@@ -1,0 +1,13 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+
+project(File_reader)
+
+file(GLOB_RECURSE HEADER_FILES "include/*.h")
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
+add_library(FileReader STATIC ${HEADER_FILES} ${SOURCE_FILES})
+target_include_directories(FileReader PUBLIC include)
+target_link_libraries(FileReader CommonGrammar)
+
+install(TARGETS FileReader DESTINATION lib)
+install(FILES ${HEADER_FILES} DESTINATION include/FileReader)
+    

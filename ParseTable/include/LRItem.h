@@ -9,7 +9,7 @@ class State;
 class LRItem
 {
 public:
-    LRItem(const Production *pProduction, const std::size_t pPosition);
+    LRItem(const Production *pProduction, const std::size_t pPosition, const std::size_t pNumber);
     ~LRItem();
 
     void addLookahead(const State *pState, const Symbol *pLookahead);

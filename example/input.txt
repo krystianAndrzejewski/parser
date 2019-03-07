@@ -2,7 +2,7 @@
 
 // to jest komentarz
 
-%token L "[0-9]*"
+%token L "[2-9][0-9]*"
 %type E
 
 %left L

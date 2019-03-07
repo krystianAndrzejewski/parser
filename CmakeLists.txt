@@ -1,0 +1,29 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+
+project(Parser_sample)
+
+set(LEXER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Lexer)
+
+set(ARGS_TO_GENERATOR -DLEXER_SOURCE_DIR:PATH=${LEXER_SOURCE_DIR})
+
+set(GENERATOR_BINARY_DIR ${CMAKE_BINARY_DIR}/config_lexer)
+
+file(MAKE_DIRECTORY "${GENERATOR_BINARY_DIR}")
+
+execute_process(COMMAND "${CMAKE_COMMAND}" -H${CMAKE_CURRENT_SOURCE_DIR}/config -B${GENERATOR_BINARY_DIR} ${ARGS_TO_GENERATOR}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config" )
+
+execute_process(COMMAND "${CMAKE_COMMAND}" --build ${GENERATOR_BINARY_DIR}
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/config" )
+
+add_subdirectory(${LEXER_SOURCE_DIR})
+add_subdirectory(CommonGrammar)
+add_subdirectory(FileReader)
+add_subdirectory(Grammar)
+add_subdirectory(ParseTable)
+add_subdirectory(Parser)
+
+add_executable(Parser_sample main.cpp)
+target_link_libraries(Parser_sample Parser)
+
+install(TARGETS Parser_sample DESTINATION bin)

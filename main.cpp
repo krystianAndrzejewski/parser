@@ -12,11 +12,11 @@ int main(char *argv, int argc)
     LRTable table(grammar);
     table.printDebugInfo();
 	std::vector<std::string> tokens = { "'1'", "'+'", "'1'", "'*'", "'0'" };
-	ElementTree *result = nullptr;
-	bool success = table.parse(tokens, result);
-	if (success && result)
-	{
-		result->print();
-	}
+	//ElementTree *result = nullptr;
+	//bool success = table.parse(tokens, result);
+	//if (success && result)
+	//{
+	//	result->print();
+	//}
     return 0;
 }

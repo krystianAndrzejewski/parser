@@ -1,0 +1,12 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+
+project(Common_grammar)
+
+file(GLOB_RECURSE HEADER_FILES "include/*.h")
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
+add_library(CommonGrammar STATIC ${HEADER_FILES} ${SOURCE_FILES})
+target_include_directories(CommonGrammar PUBLIC include)
+target_link_libraries(CommonGrammar FileReader)
+
+install(TARGETS CommonGrammar DESTINATION lib)
+install(FILES ${HEADER_FILES} DESTINATION include/CommonGrammar)

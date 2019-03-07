@@ -2,7 +2,6 @@
 #include "LRItem.h"
 #include "Grammar.h"
 #include "State.h"
-#include "ElementTree.h"
 #include <set>
 
 template<typename T>
@@ -31,7 +30,7 @@ public:
     ~LRTable();
 
     void printDebugInfo();
-	bool parse(std::vector<std::string> &tokens, ElementTree *&result);
+	//bool parse(std::vector<std::string> &tokens, ElementTree *&result);
 
     enum Action : unsigned char
     {

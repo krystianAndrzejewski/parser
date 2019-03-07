@@ -4,12 +4,12 @@
 
 std::size_t LRItem::amoutOfLRItems = 0;
 
-LRItem::LRItem(const Production *pProduction, const std::size_t pPosition)
+LRItem::LRItem(const Production *pProduction, const std::size_t pPosition, const std::size_t pNumber)
     : production(pProduction), 
     position(pPosition),
     previous(nullptr),
-    next(nullptr),
-    number(amoutOfLRItems)
+	number(pNumber),
+    next(nullptr)
 {
     hashableName = production->getProduct().getName();
     hashableName += " ->";
@@ -24,7 +24,6 @@ LRItem::LRItem(const Production *pProduction, const std::size_t pPosition)
             hashableName += " " + production->getIgredients()[i]->getName();
         }
     }
-    amoutOfLRItems += 1;
 }
 
 

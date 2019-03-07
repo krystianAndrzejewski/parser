@@ -1,0 +1,12 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+
+project(Parse_table)
+
+file(GLOB_RECURSE HEADER_FILES "include/*.h")
+file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
+add_library(ParseTable STATIC ${HEADER_FILES} ${SOURCE_FILES})
+target_include_directories(ParseTable PUBLIC include)
+target_link_libraries(ParseTable Grammar)
+
+install(TARGETS ParseTable DESTINATION lib)
+install(FILES ${HEADER_FILES} DESTINATION include/ParseTable)
