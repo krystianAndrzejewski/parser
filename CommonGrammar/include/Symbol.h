@@ -6,10 +6,11 @@ class Symbol
 {
 public:
     Symbol(const std::string &pName, const std::string &pType = "", const Precedence *pPrecedence = nullptr);
-    Symbol::Symbol(const std::string &pType, const Precedence *pPrecedence);
+    Symbol(const std::string &pType, const Precedence *pPrecedence);
     virtual ~Symbol();
 
     const std::string &getName() const { return name; }
+	const std::string &getType() const { return type; }
     virtual const std::string *getPattern() const { return &pattern; }
     virtual bool isTerminal() const { return false; }
     virtual bool isNonTerminal() const { return false; }

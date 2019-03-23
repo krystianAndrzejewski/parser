@@ -4,7 +4,7 @@
 #include <iterator>
 
 
-State::State(const std::vector<const LRItem*> &pCore)
+ParserState::ParserState(const std::vector<const LRItem*> &pCore)
 {
     core.reserve(pCore.size());
     std::copy(pCore.begin(), pCore.end(), std::back_inserter(core));
@@ -13,12 +13,12 @@ State::State(const std::vector<const LRItem*> &pCore)
 }
 
 
-State::~State()
+ParserState::~ParserState()
 {
 }
 
 
-void State::generateExtension()
+void ParserState::generateExtension()
 {
     std::queue<const LRItem *> elements;
     for (auto coreElement : core)
@@ -75,7 +75,7 @@ void State::generateExtension()
 	}
 }
 
-void State::setPrevious(const State *pPrevious)
+void ParserState::setPrevious(const ParserState *pPrevious)
 {
     previousStates.push_back(pPrevious);
 }

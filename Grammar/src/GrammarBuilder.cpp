@@ -2,13 +2,13 @@
 #include "GrammarException.h"
 
 
-Grammar *GrammarBuilder::createGrammar(const FileReader &reader)
+Grammar *GrammarBuilder::createGrammar(const StreamReader &reader)
 {
     auto tokens = reader.getTokens();
     auto precedences = reader.getPrecedences();
     auto nonTerminals = reader.getNonTerminals();
     auto productions = reader.getProductions();
-    Grammar *grammar = new Grammar();
+    std::unique_ptr<Grammar, std::function <void(const Grammar*)>> grammar(new Grammar(), GrammarBuilder::deleteGrammar);
 
     createNonterminals(grammar, productions, nonTerminals);
     createPrecedences(grammar, precedences);
@@ -21,7 +21,7 @@ Grammar *GrammarBuilder::createGrammar(const FileReader &reader)
     grammar->createFirstTable();
     grammar->createFollowTable();
 
-    return grammar;
+    return grammar.release();
 }
 
 void GrammarBuilder::deleteGrammar(const Grammar *grammar)
@@ -30,7 +30,7 @@ void GrammarBuilder::deleteGrammar(const Grammar *grammar)
 }
 
 void GrammarBuilder::createNonterminals(
-    Grammar *grammar,
+	std::unique_ptr<Grammar, std::function <void(const Grammar*)>>& grammar,
     const std::vector<std::tuple<std::string, std::vector<std::pair<std::string, bool>>, std::string>> &productions,
     const std::vector<std::tuple<std::string, std::string>> &nonTerminals)
 {
@@ -53,7 +53,7 @@ void GrammarBuilder::createNonterminals(
 
 
 void GrammarBuilder::createPrecedences(
-    Grammar *grammar,
+	std::unique_ptr<Grammar, std::function <void(const Grammar*)>>& grammar,
     const std::vector<std::tuple<std::string, unsigned char, unsigned int>> &precedences)
 {
     for (auto precedence : precedences)
@@ -70,7 +70,7 @@ void GrammarBuilder::createPrecedences(
 
 
 void GrammarBuilder::createTerminals(
-    Grammar *grammar,
+	std::unique_ptr<Grammar, std::function <void(const Grammar*)>>& grammar,
     const std::vector<std::tuple<std::string, std::string, std::string>> &terminals)
 {
     for (auto token : terminals)
@@ -84,7 +84,7 @@ void GrammarBuilder::createTerminals(
 
 
 void GrammarBuilder::createProductions(
-    Grammar *grammar,
+	std::unique_ptr<Grammar, std::function <void(const Grammar*)>>& grammar,
     const std::vector<std::tuple<std::string, std::vector<std::pair<std::string, bool>>, std::string>> &productions)
 {
     for (auto production : productions)

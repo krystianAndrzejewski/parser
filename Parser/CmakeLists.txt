@@ -6,7 +6,7 @@ file(GLOB_RECURSE HEADER_FILES "include/*.h")
 file(GLOB_RECURSE SOURCE_FILES "src/*.cpp")
 add_library(Parser STATIC ${HEADER_FILES} ${SOURCE_FILES})
 target_include_directories(Parser PUBLIC include)
-target_link_libraries(Parser ParseTable)
+target_link_libraries(Parser ParseTable Lexer)
 
 install(TARGETS Parser DESTINATION lib)
 install(FILES ${HEADER_FILES} DESTINATION include/Parser)

@@ -8,7 +8,7 @@
 #include "Symbol.h"
 #include "NonTerminal.h"
 #include "Terminal.h"
-#include "FileReader.h"
+#include "StreamReader.h"
 
 class GrammarBuilder;
 
@@ -26,6 +26,10 @@ public:
     bool getSymbol(const std::string &name, std::size_t &result) const;
     bool getProduction(const std::string &name, std::size_t &result) const;
     bool getPrecedence(const std::string &name, std::size_t &result) const;
+
+	bool getSymbol(const Symbol *ptr, std::size_t &result) const;
+	bool getProduction(const Production *ptr, std::size_t &result) const;
+	bool getPrecedence(const Precedence *ptr, std::size_t &result) const;
 
     const std::vector<const Symbol*> *getFirst(const Symbol *symbol) const;
     const std::vector<const Symbol*> *getFollow(const Symbol *symbol) const;

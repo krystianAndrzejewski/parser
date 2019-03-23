@@ -1,0 +1,25 @@
+%start Z
+
+// to jest komentarz
+
+%token L "[2-9][0-9]*"
+%ignore "[ ]*"
+%type E
+
+%left L
+%nonassoc K
+
+Z : E
+
+E : E '*' E
+  | E '+' E %prec K
+
+E : B
+B : '0'
+B : '1'
+B : L
+B : %empty
+
+
+
+

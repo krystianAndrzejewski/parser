@@ -2,11 +2,11 @@
 #include "LRItem.h"
 #include <unordered_map>
 
-class State
+class ParserState
 {
 public:
-    State(const std::vector<const LRItem*> &pCore);
-    ~State();
+    ParserState(const std::vector<const LRItem*> &pCore);
+    ~ParserState();
 
     const std::vector<const LRItem*> &getCore() const { return core; }
     const std::vector<const LRItem*> &getExtension() const { return extension; }
@@ -25,7 +25,7 @@ public:
         }
     }
 
-    bool operator< (const State &rhs) const
+    bool operator< (const ParserState &rhs) const
     {
         return core < rhs.getCore();
     }
@@ -35,7 +35,7 @@ public:
         return core < rhs;
     }
 
-    bool operator== (const State &rhs) const
+    bool operator== (const ParserState &rhs) const
     {
         return core == rhs.getCore();
     }
@@ -45,7 +45,7 @@ public:
         return core == rhs;
     }
 
-    void setPrevious(const State *pPrevious);
+    void setPrevious(const ParserState *pPrevious);
 
 private:
 
@@ -56,16 +56,16 @@ private:
 
     std::vector<const Symbol*> ateSymbols;
 
-    std::vector<const State*> previousStates;
+    std::vector<const ParserState*> previousStates;
     std::unordered_map<const Symbol *, std::vector<const LRItem*>> nextStates;
     std::vector<const LRItem*> reducedItems;
 
 };
 
 template<>
-struct std::less<std::pair<const Symbol*, const State*>>
+struct std::less<std::pair<const Symbol*, const ParserState*>>
 {
-    bool operator()(const std::pair<const Symbol*, const State*> &lhs, const std::pair<const Symbol*, const State*> &rhs) const
+    bool operator()(const std::pair<const Symbol*, const ParserState*> &lhs, const std::pair<const Symbol*, const ParserState*> &rhs) const
     {
         int compareValue = lhs.first->getName().compare(rhs.first->getName());
         if (compareValue == -1)
@@ -85,9 +85,9 @@ struct std::less<std::pair<const Symbol*, const State*>>
 
 
 template<>
-struct std::less<const std::pair<const Symbol*, const State*> *>
+struct std::less<const std::pair<const Symbol*, const ParserState*> *>
 {
-    bool operator()(const std::pair<const Symbol*, const State*>  * const lhs, const std::pair<const Symbol*, const State*>  * const rhs) const
+    bool operator()(const std::pair<const Symbol*, const ParserState*>  * const lhs, const std::pair<const Symbol*, const ParserState*>  * const rhs) const
     {
         int compareValue = lhs->first->getName().compare(rhs->first->getName());
         if (compareValue == -1)

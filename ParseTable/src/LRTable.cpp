@@ -8,25 +8,25 @@
 #include <iostream>
 
 void readRelation(
-    const std::pair<const Symbol*, const State*> *transition,
-    const std::map<const std::vector<const LRItem*> *, const State*> *statesMap,
+    const std::pair<const Symbol*, const ParserState*> *transition,
+    const std::map<const std::vector<const LRItem*> *, const ParserState*> *statesMap,
     std::unordered_set<const Symbol *> *emptyProducts,
-    std::vector<const std::pair<const Symbol*, const State*> *> &symbolSet);
+    std::vector<const std::pair<const Symbol*, const ParserState*> *> &symbolSet);
 void directReadRelation(
-    const std::pair<const Symbol*, const State*> *transition,
-    const State *firstState,
+    const std::pair<const Symbol*, const ParserState*> *transition,
+    const ParserState *firstState,
     const Grammar *grammar,
     std::unordered_set<const Symbol*> &symbolSet);
 void readSet(
-    const std::pair<const Symbol*, const State*> *transition,
-    const std::map<const std::pair< const Symbol *, const State *> *, unordered_set<const Symbol*>>& readSets,
+    const std::pair<const Symbol*, const ParserState*> *transition,
+    const std::map<const std::pair< const Symbol *, const ParserState *> *, unordered_set<const Symbol*>>& readSets,
     std::unordered_set<const Symbol*> &symbolSet);
 void includeTransitions(
-    const std::pair<const Symbol*, const State*> *transition,
-    std::map<std::pair< const Symbol *, const State * >, std::vector<std::pair< const Symbol *, const State * >>>* includesDictionary,
-    std::vector<const std::pair< const Symbol *, const State * > *> &transitionSet);
+    const std::pair<const Symbol*, const ParserState*> *transition,
+    std::map<std::pair< const Symbol *, const ParserState * >, std::vector<std::pair< const Symbol *, const ParserState * >>>* includesDictionary,
+    std::vector<const std::pair< const Symbol *, const ParserState * > *> &transitionSet);
 
-LRTable::LRTable(const Grammar *pGrammar)
+LRTable::LRTable(const Grammar &pGrammar)
     : grammar(pGrammar)
 {
     generateItems();
@@ -38,11 +38,6 @@ LRTable::LRTable(const Grammar *pGrammar)
 
 LRTable::~LRTable()
 {
-    for (auto item : items)
-    {
-        delete item;
-    }
-	GrammarBuilder::deleteGrammar(grammar);
 }
 
 void LRTable::printDebugInfo()
@@ -52,7 +47,7 @@ void LRTable::printDebugInfo()
         << "States:\n";
     for (auto state : states)
     {
-        std::cout << intend << "State " << statesNumberMap[state] << ":\n";
+        std::cout << intend << "ParserState " << statesNumberMap[state] << ":\n";
         for (auto lrItem : state->getCore())
         {
             std::cout << intend << intend << lrItem->getHashableName() << " {";
@@ -88,6 +83,39 @@ void LRTable::printDebugInfo()
     }
 }
 
+bool LRTable::getAction(const std::pair<std::size_t, std::size_t> &actionDef, std::pair< LRTable::Action, std::size_t> &moveProps)
+{
+	if (actionDef.second >= states.size())
+	{
+		return false;
+	}
+	std::pair<const Symbol *, const ParserState *> keyDef = std::make_pair(grammar.get().getSymbol(actionDef.first), states[actionDef.second]);
+	auto it = actionTable.find(keyDef);
+	if (it != actionTable.end())
+	{
+		moveProps = it->second;
+		return true;
+	}
+	return false;
+}
+
+bool LRTable::getGoto(const std::pair<std::size_t, std::size_t> &gotoActionDef, std::size_t &stateIndex)
+{
+	auto production = grammar.get().getProduction(gotoActionDef.first);
+	if (gotoActionDef.second >= states.size() || production == nullptr)
+	{
+		return false;
+	}
+	std::pair<const Symbol *, const ParserState *> keyDef = std::make_pair(&(production->getProduct()), states[gotoActionDef.second]);
+	auto it = gotoTable.find(keyDef);
+	if (it != gotoTable.end())
+	{
+		stateIndex = it->second;
+		return true;
+	}
+	return false;
+}
+
 //bool LRTable::parse(std::vector<std::string> &tokens, ElementTree *&result)
 //{
 //	result = nullptr;
@@ -105,12 +133,12 @@ void LRTable::printDebugInfo()
 //		}
 //		unsigned int actualState = stateStack.back();
 //		unsigned int symbolId = 0;
-//		bool isValidToken = grammar->getSymbol(token, symbolId);
+//		bool isValidToken = grammar.get().getSymbol(token, symbolId);
 //		if (isValidToken == false)
 //		{
 //			throw std::runtime_error("Provided token is not valid");
 //		}
-//		std::pair<const Symbol *, const State *> actionDef = std::make_pair(grammar->getSymbol(symbolId), states[actualState]);
+//		std::pair<const Symbol *, const ParserState *> actionDef = std::make_pair(grammar.get().getSymbol(symbolId), states[actualState]);
 //		auto it = actionTable.find(actionDef);
 //		if (it != actionTable.end())
 //		{
@@ -119,7 +147,7 @@ void LRTable::printDebugInfo()
 //			{
 //				std::vector<std::unique_ptr<ElementTree>> childreen;
 //				unsigned int reducedProductionIndex = it->second.second;
-//				auto production = grammar->getProduction(reducedProductionIndex);
+//				auto production = grammar.get().getProduction(reducedProductionIndex);
 //				unsigned int productionIngredientsSize = production->getIgredients().size();
 //				for (unsigned int j = 0; j < productionIngredientsSize; j++)
 //				{
@@ -127,8 +155,8 @@ void LRTable::printDebugInfo()
 //					childreen.emplace_back(elementTreeStack.back().release());
 //					elementTreeStack.pop_back();
 //				}
-//				elementTreeStack.emplace_back(new ElementTree(grammar->getProduction(it->second.second)->getProduct(), std::move(childreen)));
-//				std::pair<const Symbol *, const State *> gotoActionDef = std::make_pair(&((const Symbol&)grammar->getProduction(it->second.second)->getProduct()), states[stateStack.back()]);
+//				elementTreeStack.emplace_back(new ElementTree(grammar.get().getProduction(it->second.second)->getProduct(), std::move(childreen)));
+//				std::pair<const Symbol *, const ParserState *> gotoActionDef = std::make_pair(&((const Symbol&)grammar.get().getProduction(it->second.second)->getProduct()), states[stateStack.back()]);
 //				auto gotoIt = gotoTable.find(gotoActionDef);
 //				if (gotoIt != gotoTable.end())
 //				{
@@ -162,19 +190,19 @@ void LRTable::printDebugInfo()
 
 void LRTable::generateItems()
 {
-    const Symbol *start = grammar->getStartNonTerminal();
-    const std::vector<const Production *> *productions = grammar->getProductions(start);
+    const Symbol *start = grammar.get().getStartNonTerminal();
+    const std::vector<const Production *> *productions = grammar.get().getProductions(start);
     std::stack<LRItem *> inputStack;
 	std::size_t numLrItems = 0;
     for (auto production : *productions)
     {
-        items.push_back(new LRItem(production, 0, numLrItems++));
-        inputStack.push(items.back());
+        items.emplace_back(new LRItem(production, 0, numLrItems++));
+        inputStack.push(items.back().get());
         if (itemsMap.find(items.back()->getProduction()) == itemsMap.end())
         {
             itemsMap[items.back()->getProduction()] = std::vector<LRItem*>();
         }
-        itemsMap[items.back()->getProduction()].push_back(items.back());
+        itemsMap[items.back()->getProduction()].push_back(items.back().get());
     }
     do
     {
@@ -184,16 +212,16 @@ void LRTable::generateItems()
         auto igredients = production->getIgredients();
         if (input->getPosition() < igredients.size())
         {
-            items.push_back(new LRItem(input->getProduction(), input->getPosition() + 1, numLrItems++));
-            inputStack.push(items.back());
+            items.emplace_back(new LRItem(input->getProduction(), input->getPosition() + 1, numLrItems++));
+            inputStack.push(items.back().get());
             if (itemsMap.find(items.back()->getProduction()) == itemsMap.end())
             {
                 itemsMap[input->getProduction()] = std::vector<LRItem*>();
             }
-            itemsMap[input->getProduction()].push_back(items.back());
+            itemsMap[input->getProduction()].push_back(items.back().get());
             items.back()->setPrevious(input);
-            input->setNext(items.back());
-            auto childreen = grammar->getProductions(igredients[input->getPosition()]);
+            input->setNext(items.back().get());
+            auto childreen = grammar.get().getProductions(igredients[input->getPosition()]);
             if (childreen != nullptr)
             {
                 for (auto child : *childreen)
@@ -201,14 +229,14 @@ void LRTable::generateItems()
                     auto iterator = itemsMap.find(child);
                     if (iterator == itemsMap.end())
                     {
-                        items.push_back(new LRItem(child, 0, numLrItems++));
-                        inputStack.push(items.back());
+                        items.emplace_back(new LRItem(child, 0, numLrItems++));
+                        inputStack.push(items.back().get());
                         if (itemsMap.find(items.back()->getProduction()) == itemsMap.end())
                         {
                             itemsMap[items.back()->getProduction()] = std::vector<LRItem*>();
                         }
-                        itemsMap[items.back()->getProduction()].push_back(items.back());
-                        input->addChild(items.back());
+                        itemsMap[items.back()->getProduction()].push_back(items.back().get());
+                        input->addChild(items.back().get());
                     }
                     else
                     {
@@ -226,10 +254,10 @@ void LRTable::generateItems()
 
 void LRTable::generateStatesLRO()
 {
-    const Symbol *start = grammar->getStartNonTerminal();
-    const std::vector<const Production *> *productions = grammar->getProductions(start);
+    const Symbol *start = grammar.get().getStartNonTerminal();
+    const std::vector<const Production *> *productions = grammar.get().getProductions(start);
     std::vector<const LRItem *> firstItems;
-    std::queue<State*> statesQueue;
+    std::queue<ParserState*> statesQueue;
     for (auto production : *productions)
     {
         auto iterator = itemsMap.find(production);
@@ -238,7 +266,7 @@ void LRTable::generateStatesLRO()
             firstItems.push_back(iterator->second[0]);
         }
     }
-    statesQueue.push(new State(firstItems));
+    statesQueue.push(new ParserState(firstItems));
     states.push_back(statesQueue.back());
     statesMap[&(states.back()->getCore())] = statesQueue.back();
     do
@@ -250,7 +278,7 @@ void LRTable::generateStatesLRO()
             auto core = argument->getNextStateCore(*symbol);
             if (statesMap.find(core) == statesMap.end())
             {
-                statesQueue.push(new State(*(argument->getNextStateCore(*symbol))));
+                statesQueue.push(new ParserState(*(argument->getNextStateCore(*symbol))));
                 statesNumberMap[statesQueue.back()] = states.size();
                 statesQueue.back()->setPrevious(argument);
                 states.push_back(statesQueue.back());
@@ -272,25 +300,25 @@ void LRTable::generateLALRlookahead()
 
 void LRTable::generateReadSets()
 {
-    std::function<void(const std::pair< const Symbol *, const State *> *, std::vector<const std::pair< const Symbol *, const State *> *>&)> func2 
+    std::function<void(const std::pair< const Symbol *, const ParserState *> *, std::vector<const std::pair< const Symbol *, const ParserState *> *>&)> func2 
         = std::bind(readRelation, std::placeholders::_1, &statesMap, &emptyProducts, std::placeholders::_2);
-    std::function<void(const std::pair< const Symbol *, const State *> *, std::unordered_set<const Symbol *>&)> func1
-        = std::bind(directReadRelation, std::placeholders::_1, states[0], grammar, std::placeholders::_2);;
+    std::function<void(const std::pair< const Symbol *, const ParserState *> *, std::unordered_set<const Symbol *>&)> func1
+        = std::bind(directReadRelation, std::placeholders::_1, states[0], &grammar.get(), std::placeholders::_2);;
     TrajanAlgorithm(nonTerminalTransitions, func1, func2, readSets);
 }
 
 void LRTable::generateFollowSets()
 {
-    std::function<void(const std::pair< const Symbol *, const State *> *, std::vector<const std::pair< const Symbol *, const State *> *>&)> func2 
+    std::function<void(const std::pair< const Symbol *, const ParserState *> *, std::vector<const std::pair< const Symbol *, const ParserState *> *>&)> func2 
         = std::bind(includeTransitions, std::placeholders::_1, &includesDictionary, std::placeholders::_2);
-    std::function<void(const std::pair< const Symbol *, const State *> *, std::unordered_set<const Symbol *>&)> func1
+    std::function<void(const std::pair< const Symbol *, const ParserState *> *, std::unordered_set<const Symbol *>&)> func1
         = std::bind(readSet, std::placeholders::_1, readSets, std::placeholders::_2);
     TrajanAlgorithm(nonTerminalTransitions, func1, func2, followSets);
 }
 
 void LRTable::takeEmptyProducts()
 {
-    auto productions = grammar->getAllProductions();
+    auto productions = grammar.get().getAllProductions();
     for (auto production : productions)
     {
         if (production->getIgredients().size() == 0)
@@ -307,9 +335,9 @@ void LRTable::takeNonTerminalTransitions()
         for (auto symbol : state->getAteSymbols())
         {
             if (symbol->isNonTerminal() && 
-                nonTerminalTransitions.find(&std::pair< const Symbol *, const State *>(symbol, state)) == nonTerminalTransitions.end())
+                nonTerminalTransitions.find(&std::pair< const Symbol *, const ParserState *>(symbol, state)) == nonTerminalTransitions.end())
             {
-                nonTerminalTransitions.insert(new std::pair< const Symbol *, const State *>(symbol, state));
+                nonTerminalTransitions.insert(new std::pair< const Symbol *, const ParserState *>(symbol, state));
             }
         }
     }
@@ -329,7 +357,7 @@ void LRTable::generateLookbacksAndIncludes()
             auto tmpState = state;
             while (lrItem->getSymbol() != nullptr)
             {
-                auto tmpTransition = std::pair< const Symbol *, const State * >(lrItem->getSymbol(), tmpState);
+                auto tmpTransition = std::pair< const Symbol *, const ParserState * >(lrItem->getSymbol(), tmpState);
                 if (nonTerminalTransitions.find(&tmpTransition) != nonTerminalTransitions.end())
                 {
                     auto tmpLrItem = lrItem->getNext();
@@ -350,7 +378,7 @@ void LRTable::generateLookbacksAndIncludes()
                     {
                         if (includesDictionary.find(tmpTransition) == includesDictionary.end())
                         {
-                            includesDictionary[tmpTransition] = std::vector < std::pair< const Symbol *, const State * >>();
+                            includesDictionary[tmpTransition] = std::vector < std::pair< const Symbol *, const ParserState * >>();
                         }
                         includesDictionary[tmpTransition].push_back(*transition);
                     }
@@ -362,7 +390,7 @@ void LRTable::generateLookbacksAndIncludes()
             {
                 if (*(tmpLrItem->getProduction()) == *(lrItem->getProduction()))
                 {
-                    auto lookback = std::pair< const LRItem *, const State * >(tmpLrItem, tmpState);
+                    auto lookback = std::pair< const LRItem *, const ParserState * >(tmpLrItem, tmpState);
                     lookBacksDictionary[*transition].push_back(lookback);
                 }
             }
@@ -370,7 +398,7 @@ void LRTable::generateLookbacksAndIncludes()
             {
                 if (*(tmpLrItem->getProduction()) == *(lrItem->getProduction()))
                 {
-                    auto lookback = std::pair< const LRItem *, const State * >(tmpLrItem, tmpState);
+                    auto lookback = std::pair< const LRItem *, const ParserState * >(tmpLrItem, tmpState);
                     lookBacksDictionary[*transition].push_back(lookback);
                 }
             }
@@ -393,21 +421,21 @@ void LRTable::addLookaheads()
     }
     for (auto lrItem : states[0]->getCore())
     {
-        const State *state = states[0];
+        const ParserState *state = states[0];
         while (lrItem->getNext())
         {
             state = statesMap[state->getNextStateCore(*(lrItem->getSymbol()))];
             lrItem = lrItem->getNext();
         }
-        const_cast<LRItem*>(lrItem)->addLookahead(state, grammar->getSymbol("$"));
-        actionTable[make_pair(grammar->getSymbol("$"), state)] = make_pair(Action::accept, 0);
+        const_cast<LRItem*>(lrItem)->addLookahead(state, grammar.get().getSymbol("$"));
+        actionTable[make_pair(grammar.get().getSymbol("$"), state)] = make_pair(Action::accept, 0);
     }
 }
 
 void LRTable::generateTable()
 {
     std::unordered_map<const Production*, unsigned int> productionReduceNumber;
-    for (auto production : grammar->getAllProductions())
+    for (auto production : grammar.get().getAllProductions())
     {
         productionReduceNumber[production] = 0;
     }
@@ -428,7 +456,7 @@ void LRTable::generateTable()
         for (auto reducedItem : state->getReducedLRItems())
         {
             std::size_t productionNumber;
-            grammar->getProduction(reducedItem->getProduction()->getHashableName(), productionNumber);
+            grammar.get().getProduction(reducedItem->getProduction()->getHashableName(), productionNumber);
 			// the loop is repeated for LALR - lookaheads, SLR - follows, LR(0) - all terminals
             for (auto lookahead : reducedItem->getLookaheads())
             {
@@ -445,7 +473,7 @@ void LRTable::generateTable()
                     auto productionPrority = productionPrec ? productionPrec->getPriority() : 0;
                     auto symbolPrority = symbolPrec ? symbolPrec->getPriority() : 0;
                     auto productionAssociation = productionPrec ? productionPrec->getAssociation() : Precedence::RIGHT;
-                    if (symbolPrority == productionPrority && productionAssociation == Precedence::LEFT)
+                    if (symbolPrority == productionPrority && productionAssociation == Precedence::NONASSOC)
                     {
                         std::string errorMessage = "Nonassoc priority for production cannot be resolved for state " + statesNumberMap[state];
                         throw GrammarException(errorMessage, GrammarException::ErrorCause::unknown_conflict);
@@ -466,7 +494,7 @@ void LRTable::generateTable()
                     if (productionNumber < iterator->second.second)
                     {
                         productionReduceNumber[reducedItem->getProduction()] += 1;
-                        productionReduceNumber[grammar->getProduction(iterator->second.second)] -= 1;
+                        productionReduceNumber[grammar.get().getProduction(iterator->second.second)] -= 1;
                         actionTable[std::make_pair(lookahead, state)] = std::make_pair(Action::reduce, productionNumber);
                         rrConflicts.push_back(std::make_tuple(state, productionNumber, iterator->second.second));
                     }
@@ -477,7 +505,7 @@ void LRTable::generateTable()
                 }
                 else
                 {
-                    if ((*grammar->getStartNonTerminal()) == reducedItem->getProduction()->getProduct())
+                    if ((*grammar.get().getStartNonTerminal()) == reducedItem->getProduction()->getProduct())
                     {
                         continue;
                     }
@@ -500,8 +528,8 @@ void LRTable::generateTable()
 }
 
 void directReadRelation(
-    const std::pair<const Symbol*, const State*> *transition, 
-    const State *firstState,
+    const std::pair<const Symbol*, const ParserState*> *transition, 
+    const ParserState *firstState,
     const Grammar *grammar,
     std::unordered_set<const Symbol*> &symbolSet)
 {
@@ -532,10 +560,10 @@ void directReadRelation(
 
 
 void readRelation(
-    const std::pair<const Symbol*, const State*> *transition, 
-    const std::map<const std::vector<const LRItem*> *, const State*> *statesMap,
+    const std::pair<const Symbol*, const ParserState*> *transition, 
+    const std::map<const std::vector<const LRItem*> *, const ParserState*> *statesMap,
     std::unordered_set<const Symbol *> *emptyProducts,
-    std::vector<const std::pair<const Symbol*, const State*> *> &symbolSet)
+    std::vector<const std::pair<const Symbol*, const ParserState*> *> &symbolSet)
 {
     auto transitionProducts = transition->second->getNextStateCore(*(transition->first));
     if (transitionProducts)
@@ -553,8 +581,8 @@ void readRelation(
 }
 
 void readSet(
-    const std::pair<const Symbol*, const State*> *transition,
-    const std::map<const std::pair< const Symbol *, const State *> *, unordered_set<const Symbol*>>& readSets,
+    const std::pair<const Symbol*, const ParserState*> *transition,
+    const std::map<const std::pair< const Symbol *, const ParserState *> *, unordered_set<const Symbol*>>& readSets,
     std::unordered_set<const Symbol*> &symbolSet)
 {
     if (transition)
@@ -571,9 +599,9 @@ void readSet(
 }
 
 void includeTransitions(
-    const std::pair<const Symbol*, const State*> *transition,
-    std::map<std::pair< const Symbol *, const State * >, std::vector<std::pair< const Symbol *, const State * >>>* includesDictionary,
-    std::vector<const std::pair< const Symbol *, const State * > *> &transitionSet)
+    const std::pair<const Symbol*, const ParserState*> *transition,
+    std::map<std::pair< const Symbol *, const ParserState * >, std::vector<std::pair< const Symbol *, const ParserState * >>>* includesDictionary,
+    std::vector<const std::pair< const Symbol *, const ParserState * > *> &transitionSet)
 {
     if (transition)
     {

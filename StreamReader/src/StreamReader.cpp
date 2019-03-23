@@ -1,10 +1,10 @@
-#include "FileReader.h"
+#include "StreamReader.h"
 #include "GrammarException.h"
 
 #include <sstream>
 #include <iostream>
 
-const std::map<FileReader::keyword, std::string> FileReader::keywordText = { 
+const std::map<StreamReader::keyword, std::string> StreamReader::keywordText = { 
     { precedence_left, "%left" },
     { precedence_right, "%right" },
     { precedence_nonassoc, "%nonassoc" },
@@ -12,12 +12,12 @@ const std::map<FileReader::keyword, std::string> FileReader::keywordText = {
     { token_definition, "%token" },
     { nonterminal_definition, "%type" },
     { start_definition, "%start" },
-    { empty_definition, "%empty" }
+    { ignore_definition, "%ignore" },
+	{ empty_definition, "%empty" }
 };
 
 
-FileReader::FileReader(const std::string &pPath) :
-    path(pPath),
+StreamReader::StreamReader() :
     namePattern("([a-zA-Z_][a-zA-Z0-9_]*)"),
     nameOrSpecialPattern("([a-zA-Z_%][a-zA-Z0-9_]*)"),
     whiteSigns("\\s*"),
@@ -25,36 +25,44 @@ FileReader::FileReader(const std::string &pPath) :
     textInQuationMark("'(.*?[^\\\\](\\\\)*?)'"),
     textInDQuationMark("\"(.*?[^\\\\](\\\\)*?)\""),
     alternativeProductionBegin("\\|[ \\t]*"),
-    commentPattern("^\\s*//.*?$")
+    commentPattern("^\\s*//.*?$"),
+	isGenerated(false)
 {
-    processFile();
 }
 
 
-FileReader::~FileReader()
+StreamReader::~StreamReader()
 {
 
 }
 
 
-void FileReader::processFile()
+bool StreamReader::processStream(std::istream &reader)
 {
-    if (readFile())
+	clearInternalProps();
+    if (readStream(reader))
     {
         removeMatches(commentPattern);
         takeStartProduction();
         takeTerminals();
+		takeIgnores();
         takeNonTerminals();
         takePrecedences();
         takeProductions();
         isContentEmpty();
+		isGenerated = true;
     }
+	return isGenerated;
 }
 
-void FileReader::printDebugInfo()
+void StreamReader::printDebugInfo()
 {
-    std::cout << "FileReader - initial text analisys\n\n"
-        << "A path to the file: " << path << "\n\n"
+	if (isGenerated == false)
+	{
+		std::cout << "StreamReader - an initial text analisys was not done.\n\n";
+		return;
+	}
+    std::cout << "StreamReader - an initial text analisys was processed corectly.\n\n"
         << "Tokens:\n";
     for (auto token : tokens)
     {
@@ -68,6 +76,11 @@ void FileReader::printDebugInfo()
             std::cout << "; Type: default)\n";
         }
     }
+	std::cout << "Ignores:\n";
+	for (auto ignore : ignores)
+	{
+		std::cout << "    (Pattern: " << ignore << ")\n";
+	}
     std::cout << "Nonterminals:\n";
     for (auto nonTerminal : nonTerminals)
     {
@@ -112,21 +125,23 @@ void FileReader::printDebugInfo()
 }
 
 
-bool FileReader::readFile()
+bool StreamReader::readStream(std::istream &reader)
 {
-    ifstream reader;
-    reader.open(path);
-    if (reader.is_open())
+    try
     {
         std::stringstream buffer;
         buffer << reader.rdbuf();
         content = buffer.str(); 
         return true;
     }
+	catch (...)
+	{
+		// Does not handle the exceptions
+	}
     return false;
 }
 
-void FileReader::takeProductions()
+void StreamReader::takeProductions()
 {
     std::stringstream stream;
     stream << "^" << whiteSigns << namePattern << interspace << ":" << interspace 
@@ -179,7 +194,7 @@ void FileReader::takeProductions()
 }
 
 
-void FileReader::processProductionIgredient(
+void StreamReader::processProductionIgredient(
     const std::string &product, 
     const std::string &productionBody,
     const std::regex &igredientRegex)
@@ -237,7 +252,7 @@ void FileReader::processProductionIgredient(
 }
 
 
-bool FileReader::processPrecedenceForProduction(std::sregex_iterator &iterator)
+bool StreamReader::processPrecedenceForProduction(std::sregex_iterator &iterator)
 {
     std::sregex_iterator end;
     iterator++;
@@ -265,7 +280,7 @@ bool FileReader::processPrecedenceForProduction(std::sregex_iterator &iterator)
 }
 
 
-void FileReader::takePrecedences()
+void StreamReader::takePrecedences()
 {
     std::stringstream stream;
     stream << "^" << whiteSigns
@@ -286,7 +301,6 @@ void FileReader::takePrecedences()
         << ")+"
         << ")" << whiteSigns << "$";
     std::string precedencePattern = stream.str();
-    std::string namePattern = "[a-zA-Z_][a-zA-Z0-9_]*";
     std::regex precedenceRegex(precedencePattern);
     std::regex nameRegex(namePattern);
     std::sregex_iterator precedenceIterator(content.begin(), content.end(), precedenceRegex);
@@ -301,7 +315,7 @@ void FileReader::takePrecedences()
     removeMatches(precedenceRegex);
 }
 
-void FileReader::processPrecedenceIgredient(
+void StreamReader::processPrecedenceIgredient(
     const std::sregex_iterator &iterator,
     const std::regex &nameRegex,
     unsigned int level)
@@ -339,7 +353,7 @@ void FileReader::processPrecedenceIgredient(
 }
 
 
-void FileReader::takeTerminals()
+void StreamReader::takeTerminals()
 {
     std::stringstream stream;
     stream << "^" << whiteSigns << keywordText.at(token_definition)
@@ -368,7 +382,25 @@ void FileReader::takeTerminals()
     removeMatches(terminalRegex);
 }
 
-void FileReader::processTokens(
+void StreamReader::takeIgnores()
+{
+	std::stringstream stream;
+	stream << "^" << whiteSigns << keywordText.at(ignore_definition)
+		<< "("
+		<< interspace << textInDQuationMark
+		<< ")+" << whiteSigns << "$";
+	std::string ignorePattern = stream.str();
+	std::regex ignoreRegex(ignorePattern);
+	std::sregex_iterator ignoreIterator(content.begin(), content.end(), ignoreRegex);
+	std::sregex_iterator end;
+	for (; ignoreIterator != end; ++ignoreIterator)
+	{
+		ignores.push_back(ignoreIterator->str(2));
+	}
+	removeMatches(ignorePattern);
+}
+
+void StreamReader::processTokens(
     const std::sregex_iterator &iterator,
     const std::regex &tokenRegex)
 {
@@ -391,7 +423,7 @@ void FileReader::processTokens(
 }
 
 
-void FileReader::takeNonTerminals()
+void StreamReader::takeNonTerminals()
 {
     std::stringstream stream;
     stream << "^" << whiteSigns << keywordText.at(nonterminal_definition)
@@ -418,7 +450,7 @@ void FileReader::takeNonTerminals()
 }
 
 
-void FileReader::processNonterminals(
+void StreamReader::processNonterminals(
     const std::sregex_iterator &iterator,
     const std::regex &nonTerminalRegex)
 {
@@ -440,7 +472,7 @@ void FileReader::processNonterminals(
 }
 
 
-void FileReader::takeStartProduction()
+void StreamReader::takeStartProduction()
 {
     std::stringstream stream;
     stream << "^" << whiteSigns << "%start" << interspace << namePattern << whiteSigns << "$";
@@ -461,7 +493,7 @@ void FileReader::takeStartProduction()
     removeMatches(startRegex);
 }
 
-void FileReader::isContentEmpty()
+void StreamReader::isContentEmpty()
 {
     if (!content.empty())
     {
@@ -469,15 +501,26 @@ void FileReader::isContentEmpty()
     }
 }
 
-void FileReader::removeMatches(const std::regex &regExp)
+void StreamReader::removeMatches(const std::regex &regExp)
 {
     std::string tempContent = std::move(content);
     std::regex_replace(std::back_inserter(content), tempContent.begin(), tempContent.end(), regExp, "");
 }
 
-void FileReader::removeMatches(const std::string &regExpPattern)
+void StreamReader::removeMatches(const std::string &regExpPattern)
 {
     std::regex regExp(regExpPattern);
     std::string tempContent = std::move(content);
     std::regex_replace(std::back_inserter(content), tempContent.begin(), tempContent.end(), regExp, "");
+}
+
+void StreamReader::clearInternalProps()
+{
+	isGenerated = false;
+	content.clear();
+	startProduction.clear();
+	productions.clear();
+	precedences.clear();
+	tokens.clear();
+	nonTerminals.clear();
 }

@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <map>
 
-class State;
+class ParserState;
 
 class LRItem
 {
@@ -12,7 +12,7 @@ public:
     LRItem(const Production *pProduction, const std::size_t pPosition, const std::size_t pNumber);
     ~LRItem();
 
-    void addLookahead(const State *pState, const Symbol *pLookahead);
+    void addLookahead(const ParserState *pState, const Symbol *pLookahead);
 
     const std::string &getHashableName() const { return hashableName; }
     const LRItem *getNext() const { return next; }
@@ -37,7 +37,7 @@ private:
     const Production *production;
     const std::size_t position;
     std::unordered_set<const Symbol*> lookaheads;
-    std::map<const State *, std::unordered_set<const Symbol*>> lookaheadsSet;
+    std::map<const ParserState *, std::unordered_set<const Symbol*>> lookaheadsSet;
     std::string hashableName;
     const LRItem *next;
     const LRItem *previous;

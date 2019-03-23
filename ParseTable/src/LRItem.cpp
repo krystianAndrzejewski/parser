@@ -43,7 +43,7 @@ const Symbol *LRItem::getSymbol() const
     }
 }
 
-void LRItem::addLookahead(const State *pState, const Symbol *plookahead)
+void LRItem::addLookahead(const ParserState *pState, const Symbol *plookahead)
 {
     lookaheads.insert(plookahead);
     lookaheadsSet[pState].insert(plookahead);

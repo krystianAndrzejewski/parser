@@ -105,6 +105,39 @@ bool Grammar::getPrecedence(const std::string &name, std::size_t &result) const
     return false;
 }
 
+bool Grammar::getSymbol(const Symbol * ptr, std::size_t & result) const
+{
+	auto symbolIterator = mapSymbols.find(ptr);
+	if (symbolIterator != mapSymbols.end())
+	{
+		result = symbolIterator->second;
+		return true;
+	}
+	return false;
+}
+
+bool Grammar::getProduction(const Production * ptr, std::size_t & result) const
+{
+	auto productionIterator = mapProductions.find(ptr);
+	if (productionIterator != mapProductions.end())
+	{
+		result = productionIterator->second;
+		return true;
+	}
+	return false;
+}
+
+bool Grammar::getPrecedence(const Precedence * ptr, std::size_t & result) const
+{
+	auto precedenceIterator = mapPrecedences.find(ptr);
+	if (precedenceIterator != mapPrecedences.end())
+	{
+		result = precedenceIterator->second;
+		return true;
+	}
+	return false;
+}
+
 
 const vector<Production *> &Grammar::getAllProductions() const
 { 

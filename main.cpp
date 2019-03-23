@@ -1,22 +1,30 @@
-#include "FileReader.h"
+#include "StreamReader.h"
 #include "Grammar.h"
 #include "GrammarBuilder.h"
 #include "LRTable.h"
+#include "Parser.h"
+#include <fstream>
 
 int main(char *argv, int argc)
 {
-    FileReader reader("input.txt");
-    reader.printDebugInfo();
-    auto grammar = GrammarBuilder::createGrammar(reader);
-    grammar->printDebugInfo();
-    LRTable table(grammar);
-    table.printDebugInfo();
-	std::vector<std::string> tokens = { "'1'", "'+'", "'1'", "'*'", "'0'" };
-	//ElementTree *result = nullptr;
-	//bool success = table.parse(tokens, result);
-	//if (success && result)
-	//{
-	//	result->print();
-	//}
+	std::fstream streamGrammar("..\\example\\grammar.txt");
+	if (streamGrammar.is_open() == false)
+	{
+		return 1;
+	}
+	Parser parser;
+	parser.generateParser(streamGrammar);
+	streamGrammar.close();
+	std::fstream streamInput("..\\example\\input.txt");
+	if (streamInput.is_open() == false)
+	{
+		return 1;
+	}
+	ElementTree *result = nullptr;
+	bool success = parser.parse(streamInput, result);
+	if (success && result)
+	{
+		result->print();
+	}
     return 0;
 }
