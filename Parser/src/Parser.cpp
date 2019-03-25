@@ -2,6 +2,8 @@
 #include "GrammarBuilder.h"
 #include <iostream>
 #include <sstream>
+#include <regex>
+#include <iterator>
 
 Parser::Parser() : grammar(nullptr), isGeneratedParser(false), reader(new StreamReader()), endIndex(-1)
 {
@@ -11,6 +13,23 @@ Parser::Parser() : grammar(nullptr), isGeneratedParser(false), reader(new Stream
 Parser::~Parser()
 {
 	GrammarBuilder::deleteGrammar(grammar);
+}
+
+static std::string convertRawStringToEscaped(const std::string &rawString)
+{
+	std::string output = rawString;
+	const std::map<std::string, std::string> replaceRules = {
+		{ R"((^|[^\\])((\\\\)*)\\t)", "$1$2\n" },
+		{ R"((^|[^\\])((\\\\)*)\\n)", "$1$2\t" },
+		{ R"((^|[^\\])((\\\\)*)\\r)", "$1$2\r" }
+	};
+	for (auto rule : replaceRules)
+	{
+		std::regex regRule(rule.first);
+		output = std::regex_replace(output, regRule, rule.second);
+	}
+	output = std::regex_replace(output, std::regex("\\\\"), "\\");
+	return output;
 }
 
 bool Parser::generateParser(std::istream & stream)
@@ -33,10 +52,12 @@ bool Parser::generateParser(std::istream & stream)
 	{
 		if (dynamic_cast<Terminal*>(symbol))
 		{
-			if (!(symbol->getPattern()->empty() || symbol->getType() == "end"))
+			const std::string &rawPattern = *symbol->getPattern();
+			const std::string pattern = convertRawStringToEscaped(rawPattern);
+			if (!(pattern.empty() || symbol->getType() == "end"))
 			{
 				tokenIndices.push_back(index);
-				patterns.push_back(*symbol->getPattern());
+				patterns.push_back(pattern);
 			}
 			else if(symbol->getType() == "end")
 			{
@@ -49,11 +70,13 @@ bool Parser::generateParser(std::istream & stream)
 		}
 		else if (dynamic_cast<NonTerminal*>(symbol) == false)
 		{
-			if (!symbol->getPattern()->empty())
+			const std::string &rawPattern = *symbol->getPattern();
+			const std::string pattern = convertRawStringToEscaped(rawPattern);
+			if (!pattern.empty())
 			{
 				tokenIndices.push_back(index);
 				std::stringstream ss;
-				for (auto character : *symbol->getPattern())
+				for (auto character : pattern)
 				{
 					ss << '[' << character << ']';
 				}
@@ -70,7 +93,8 @@ bool Parser::generateParser(std::istream & stream)
 
 	for (auto ignore : reader->getIgnores())
 	{
-		patterns.push_back(ignore);
+		const std::string pattern = convertRawStringToEscaped(ignore);
+		patterns.push_back(pattern);
 		tokenIndices.push_back(-1);
 	}
 
@@ -125,7 +149,7 @@ bool Parser::parse(std::istream & stream, ElementTree *& root)
 			}
 			symbolId = (std::size_t)tokenIndices[tokenId];
 		}
-		else if(stream.eof() == false)
+		else if((char)stream.get() > '\0')
 		{
 			return false;
 		}
@@ -139,7 +163,7 @@ bool Parser::parse(std::istream & stream, ElementTree *& root)
 				std::vector<std::unique_ptr<ElementTree>> childreen;
 				std::size_t reducedProductionIndex = moveProps.second;
 				auto production = grammar->getProduction(reducedProductionIndex);
-				unsigned int productionIngredientsSize = production->getIgredients().size();
+				unsigned int productionIngredientsSize = (unsigned int)production->getIgredients().size();
 				for (unsigned int j = 0; j < productionIngredientsSize; j++)
 				{
 					stateStack.pop_back();
@@ -160,7 +184,7 @@ bool Parser::parse(std::istream & stream, ElementTree *& root)
 
 				if (isGotoState)
 				{
-					stateStack.push_back(nextState);
+					stateStack.push_back((unsigned int)nextState);
 				}
 				else
 				{
@@ -170,7 +194,7 @@ bool Parser::parse(std::istream & stream, ElementTree *& root)
 			else if (moveProps.first == LRTable::shift)
 			{
 				std::vector<std::unique_ptr<ElementTree>> childreen;
-				stateStack.push_back(moveProps.second);
+				stateStack.push_back((unsigned int)moveProps.second);
 				elementTreeStack.emplace_back(new ElementTree(*grammar->getSymbol(actionDef.first), std::move(childreen)));
 				match = lexer->match(stream);
 			}

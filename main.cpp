@@ -5,9 +5,13 @@
 #include "Parser.h"
 #include <fstream>
 
-int main(char *argv, int argc)
+int main(int argc, const char *argv[])
 {
-	std::fstream streamGrammar("..\\example\\grammar.txt");
+	if (argc != 3)
+	{
+		return 1;
+	}
+	std::fstream streamGrammar(argv[1]);
 	if (streamGrammar.is_open() == false)
 	{
 		return 1;
@@ -15,7 +19,7 @@ int main(char *argv, int argc)
 	Parser parser;
 	parser.generateParser(streamGrammar);
 	streamGrammar.close();
-	std::fstream streamInput("..\\example\\input.txt");
+	std::fstream streamInput(argv[2]);
 	if (streamInput.is_open() == false)
 	{
 		return 1;

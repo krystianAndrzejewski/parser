@@ -3,7 +3,7 @@
 // to jest komentarz
 
 %token L "[2-9][0-9]*"
-%ignore "[ ]*"
+%ignore "[ \r\n\t]*"
 %type E
 
 %left L
