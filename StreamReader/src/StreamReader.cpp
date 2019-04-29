@@ -475,7 +475,7 @@ void StreamReader::processNonterminals(
 void StreamReader::takeStartProduction()
 {
     std::stringstream stream;
-    stream << "^" << whiteSigns << "%start" << interspace << namePattern << whiteSigns << "$";
+    stream << "^" << whiteSigns << keywordText.at(start_definition) << interspace << namePattern << whiteSigns << "$";
     std::string startPattern = stream.str();
     std::regex startRegex(startPattern);
     std::sregex_iterator startIterator(content.begin(), content.end(), startRegex);
