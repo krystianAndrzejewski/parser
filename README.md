@@ -23,7 +23,7 @@ cmake -H. -Bbuild -G <generator_name:"Visual Studio 14 2015 Win64">
 ```
 
 ## Usage
-An example of usage the project is defined in main.cpp. Input files are located in ./example. An grammar files has a special syntax:
+An example of the project usage is defined in main.cpp. Input files are located in ./example. An grammar files has a special syntax:
 * %start \<non-terminal-name> - takes name of non-terminal that causes a transition to a final state.
 * %ignore \<pattern> - ignores a text based on the pattern that is defined according to the argument.
 * %token <\<type>>? <name> <pattern> - takes a pattern and a name and produces a token (terminal) (first argument is type name and is practically unused).
